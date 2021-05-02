@@ -631,7 +631,10 @@ You will get a bunch of dimension and drill distance errors but there's not much
 <connect gate="G$1" pin="9" pad="9"/>
 </connects>
 <technologies>
-<technology name=""/>
+<technology name="">
+<attribute name="ATOM_PART" value="FPC05014-42201" constant="no"/>
+<attribute name="PROD_ID" value="" constant="no"/>
+</technology>
 </technologies>
 </device>
 </devices>
