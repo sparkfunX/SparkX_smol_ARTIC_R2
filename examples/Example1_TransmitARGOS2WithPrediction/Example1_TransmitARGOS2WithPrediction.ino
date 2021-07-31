@@ -15,11 +15,11 @@
   Feel like supporting our work? Buy a board from SparkFun!
 
   The smôl stack-up for this example is:
-  smôl ZOE-M8Q:          https://www.sparkfun.com/products/17236
-  smôl ARTIC R2:         https://www.sparkfun.com/products/17236
-  smôl ESP32:            https://www.sparkfun.com/products/15136
+  smôl ZOE-M8Q:          https://www.sparkfun.com/products/18358
+  smôl ARTIC R2:         https://www.sparkfun.com/products/18363
+  smôl ESP32:            https://www.sparkfun.com/products/18362
   
-  smôl Power Board LiPo: https://www.sparkfun.com/products/15210 (Optional)
+  smôl Power Board LiPo: https://www.sparkfun.com/products/18359 (Optional)
 
   The way the boards are stacked is important:
 
@@ -117,7 +117,7 @@ int GNSS_PWR_EN_Pin = 26;  // smôl GPIO1 = ESP32 Pin 26
 
 // Loop Steps - these are used by the switch/case in the main loop
 // This structure makes it easy to jump between any of the steps
-enum {
+typedef enum {
   configure_ARTIC,     // Configure the ARTIC (set the satellite detection timeout and TX mode)
   wait_for_GPS,        // Wait for the GPS time and position to be valid
   calculate_next_pass, // Read the GPS time, lat and lon. Calculate the next satellite pass
@@ -125,7 +125,7 @@ enum {
   ARTIC_TX,            // Start the ARTIC TX
   wait_for_ARTIC_TX,   // Wait for the ARTIC to transmit
 } loop_steps;
-int loop_step = configure_ARTIC; // Make sure loop_step is set to configure_ARTIC
+loop_steps loop_step = configure_ARTIC; // Make sure loop_step is set to configure_ARTIC
 
 // AS3-SP-516-2098-CNES specifies a ±10% 'jitter' on the repetition period to reduce the risk of transmission collisions
 uint32_t nextTransmitTime; // Time of the next satellite transmission (before jitter is added)
@@ -144,16 +144,18 @@ void setup()
   Serial.println(F("SparkFun smôl ARTIC R2 Example"));
   Serial.println();
 
+  // Enable power for the ZOE-M8Q
+  pinMode(GNSS_PWR_EN_Pin, OUTPUT);
+  digitalWrite(GNSS_PWR_EN_Pin, LOW); // We need to pull the EN pin low to enable power for the GNSS
+
+  delay(1000); // Give the ZOE time to start up
+
   Wire.begin();
 
   Serial.println(F("Starting the u-blox GNSS module..."));
   Serial.println();
 
-  // Enable power for the ZOE-M8Q
-  pinMode(GNSS_PWR_EN_Pin, OUTPUT);
-  digitalWrite(GNSS_PWR_EN_Pin, HIGH);
-
-  delay(1000); // Give the ZOE time to start up
+  //myGNSS.enableDebugging(); // Uncomment this line to see helpful debug messages on Serial
 
   if (myGNSS.begin() == false) //Connect to the ZOE-M8Q using Wire port
   {
