@@ -7,10 +7,8 @@
   This example shows how to use the smôl ARTIC R2 for ARGOS satellite communication.
   The smôl ZOE-M8Q provides GNSS time and position.
   The smôl ESP32 is the board which runs this example.
-  Power can be provided by:
-    The ESP32 board USB-C connection
-    The smôl Power Board AAA
-    The smôl Power Board LiPo
+  The smôl Power Board AAA or smôl Power Board LiPo provides the power.
+  The system is placed into power-down between transmits.
 
   Feel like supporting our work? Buy a board from SparkFun!
 
@@ -18,8 +16,7 @@
   smôl ZOE-M8Q:          https://www.sparkfun.com/products/18358
   smôl ARTIC R2:         https://www.sparkfun.com/products/18363
   smôl ESP32:            https://www.sparkfun.com/products/18362
-  
-  smôl Power Board LiPo: https://www.sparkfun.com/products/18359 (Optional)
+  smôl Power Board LiPo: https://www.sparkfun.com/products/18359
 
   The way the boards are stacked is important:
 
@@ -34,6 +31,11 @@
   /
   |
   OUT ---  smôl ESP32 --- IN
+                           |
+   ________________________/
+  /
+  |
+  OUT ---  smôl Power --- IN
 
   Arranged like this:
   The ESP32 GPIO0 (Digital Pin 27) controls the power for the ARTIC R2
@@ -42,6 +44,9 @@
   
   This example:
     enables power for and begins the ZOE-M8Q;
+    reads the ZOE-M8Q GNSS time, latitude and longitude;
+    calculates the next satellite pass;
+    goes into power-down until the next satellite pass;
     enables power for and begins (initializes) the ARTIC R2;
     reads and prints the ARTIC R2 TX and RX configuration;
     reads and prints the firmware status;
@@ -50,9 +55,6 @@
     sets the satellite detection timeout to 60 seconds;
     sets the TX mode to ARGOS PTT-A2;
     sets the TX frequency;
-    reads the ZOE-M8Q GNSS time, latitude and longitude;
-    calculates the next satellite pass;
-    waits until the next satellite pass;
     instructs the ARTIC R2 to Transmit One Package And Go Idle;
     keeps checking the MCU status until transmit is complete;
     repeats the message transmit numberTransmits times, repetitionPeriod seconds apart;
@@ -108,6 +110,10 @@ ARTIC_R2 myARTIC;
 #include "SparkFun_u-blox_GNSS_Arduino_Library.h" // Click here to get the library: http://librarymanager/All#SparkFun_u-blox_GNSS
 SFE_UBLOX_GNSS myGNSS;
 
+#include "SparkFun_smol_Power_Board.h" // Click here to get the library: http://librarymanager/All#SparkFun_smol_Power_Board
+smolPowerLiPo myPowerBoard; // Uncomment this line to use the smôl Power Board LiPo
+//smolPowerAAA myPowerBoard; // Uncomment this line to use the smôl Power Board AAA
+
 // Pin assignments for the smôl stack-up described above
 int CS_Pin = 5;            // smôl CS0 = ESP32 Pin 5
 int ARTIC_PWR_EN_Pin = 27; // smôl GPIO0 = ESP32 Pin 27
@@ -118,22 +124,27 @@ int GNSS_PWR_EN_Pin = 26;  // smôl GPIO1 = ESP32 Pin 26
 // Loop Steps - these are used by the switch/case in the main loop
 // This structure makes it easy to jump between any of the steps
 typedef enum {
-  configure_ARTIC,     // Configure the ARTIC (set the satellite detection timeout and TX mode)
-  wait_for_GPS,        // Wait for the GPS time and position to be valid
-  calculate_next_pass, // Read the GPS time, lat and lon. Calculate the next satellite pass
+  start_power_board,   // Start communication with the power board
+  start_GNSS,          // Power-on the GNSS
+  wait_for_GNSS,       // Wait for the GNSS time and position to be valid
+  calculate_next_pass, // Read the GNSS time, lat and lon. Calculate the next satellite pass
   wait_for_next_pass,  // Wait for the next satellite pass
+  power_on_ARTIC,      // Power-on the ARTIC, set the satellite detection timeout and TX mode
   ARTIC_TX,            // Start the ARTIC TX
   wait_for_ARTIC_TX,   // Wait for the ARTIC to transmit
+  power_down           // Power-down until the next transmit window
 } loop_steps;
-loop_steps loop_step = configure_ARTIC; // Make sure loop_step is set to configure_ARTIC
+loop_steps loop_step = start_power_board; // Initialize loop_step
 
 // AS3-SP-516-2098-CNES specifies a ±10% 'jitter' on the repetition period to reduce the risk of transmission collisions
 uint32_t nextTransmitTime; // Time of the next satellite transmission (before jitter is added)
 uint32_t nextTransmitTimeActual; // Actual time of the next satellite transmission (including jitter)
 uint8_t remainingTransmits; // Remaining number of satellite transmits
-boolean firstTransmit; // Flag to indicate if this is the first transmission on this satellite pass
+bool firstTransmit; // Flag to indicate if this is the first transmission on this satellite pass
 float lat_tx; // The latitude included in the transmitted message
 float lon_tx; // The longitude included in the transmitted message
+uint16_t powerDownDuration; // The power-down duration in seconds
+bool articIsOn = false; // Flag to indicate if the ARTIC has been powered up 
 
 void setup()
 {
@@ -144,44 +155,7 @@ void setup()
   Serial.println(F("SparkFun smôl ARTIC R2 Example"));
   Serial.println();
 
-  // Enable power for the ZOE-M8Q
-  pinMode(GNSS_PWR_EN_Pin, OUTPUT);
-  digitalWrite(GNSS_PWR_EN_Pin, LOW); // We need to pull the EN pin low to enable power for the GNSS
-
-  delay(1000); // Give the ZOE time to start up
-
-  Wire.begin();
-
-  Serial.println(F("Starting the u-blox GNSS module..."));
-  Serial.println();
-
-  //myGNSS.enableDebugging(); // Uncomment this line to see helpful debug messages on Serial
-
-  if (myGNSS.begin() == false) //Connect to the ZOE-M8Q using Wire port
-  {
-    Serial.println(F("u-blox ZOE-M8Q GNSS not detected at default I2C address. Please check the smôl stack-up and flexible circuits. Freezing."));
-    while (1)
-      ; // Do nothing more
-  }
-
-  myGNSS.setI2COutput(COM_TYPE_UBX); //Set the I2C port to output UBX only (turn off NMEA noise)
-  myGNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); //Save (only) the current ioPortsettings to flash and BBR
-
-  SPI.begin();
-
-  // Uncomment the next line to enable the helpful debug messages
-  //myARTIC.enableDebugging(); // Enable debug messages to Serial
-
-  Serial.println(F("Starting the ARTIC R2..."));
-  Serial.println();
-
-  // Begin the ARTIC: enable power and upload firmware or boot from flash
-  if (myARTIC.beginSmol(CS_Pin, ARTIC_PWR_EN_Pin) == false) // Default to using Wire to communicate with the PCA9536 I2C-GPIO chip on the smôl ARTIC R2
-  {
-    Serial.println("ARTIC R2 not detected. Please check the smôl stack-up and flexible circuits. Freezing...");
-    while (1)
-      ; // Do nothing more
-  }
+  articIsOn = false; // Flag that the ARTIC is not yet powered-up
 }
 
 void loop()
@@ -190,83 +164,74 @@ void loop()
   switch (loop_step) {
 
     // ************************************************************************************************
-    // Configure the ARTIC
-    case configure_ARTIC:
+    // Start communication with the power board
+    case start_power_board:
     {
-      // Set the TCXO voltage to 1.8V and autoDisable to 1
-      if (myARTIC.setTCXOControl(1.8, true) == false)
+      Wire.begin();
+    
+      Serial.println(F("Starting communication with the power board..."));
+      Serial.println();
+    
+      if (myPowerBoard.begin() == false) //Connect to the power board
       {
-        Serial.println("setTCXOControl failed. Freezing...");
-        while (1)
-          ; // Do nothing more
+        Serial.println(F("smôl Power Board not detected at default I2C address. Please check the smôl stack-up and flexible circuits."));
+        delay(5000); // Try again in five seconds
       }
-
-      // Set the TCXO warm-up time
-      if (myARTIC.setTCXOWarmupTime(tcxoWarmupTime) == false)
+      else
       {
-        Serial.println("setTCXOWarmupTime failed. Freezing...");
-        while (1)
-          ; // Do nothing more
+        myPowerBoard.setADCVoltageReference(SFE_SMOL_POWER_USE_ADC_REF_VCC); // Select VCC as the voltage reference
+        Serial.print(F("Battery voltage is "));
+        Serial.println(myPowerBoard.getBatteryVoltage());
+        loop_step = start_GNSS; // Move on
       }
-
-      // Set the satellite detection timeout to 60 seconds
-      if (myARTIC.setSatelliteDetectionTimeout(60) == false)
-      {
-        Serial.println("setSatelliteDetectionTimeout failed. Freezing...");
-        while (1)
-          ; // Do nothing more
-      }
-
-      // Set the TX mode to ARGOS PTT-A2
-      ARTIC_R2_MCU_Command_Result result = myARTIC.sendConfigurationCommand(CONFIG_CMD_SET_PTT_A2_TX_MODE);
-      myARTIC.printCommandResult(result); // Pretty-print the command result to Serial
-      if (result != ARTIC_R2_MCU_COMMAND_ACCEPTED)
-      {
-        Serial.println("sendConfigurationCommand failed. Freezing...");
-        while (1)
-          ; // Do nothing more
-      }
-
-      // Read and print the ARGOS configuration
-      ARGOS_Configuration_Register configuration;
-      myARTIC.readARGOSconfiguration(&configuration);
-      myARTIC.printARGOSconfiguration(configuration);
-
-      // Set the ARGOS 2/3 TX frequency to 401.630 MHz
-      // From AS3-SP-516-2098-CNES:
-      // The transmission frequency for PTT/PMT-A2 platforms shall be set between 399.91 MHz to 401.68 MHz.
-      // Due to frequency regulations, the frequency ranges [400.05 MHz to 401.0 MHz] and [401.2 MHz to 401.3 MHz] are forbidden for A2 transmissions.
-      if (myARTIC.setARGOS23TxFrequency(401.630) == false)
-      {
-        Serial.println("setARGOS23TxFrequency failed. Freezing...");
-        while (1)
-          ; // Do nothing more
-      }
-
-      // Print the TX frequency
-      float tx23freq = myARTIC.getARGOS23TxFrequency();
-      Serial.print(F("The ARGOS 2/3 TX Frequency is "));
-      Serial.print(tx23freq, 3);
-      Serial.println(F(" MHz."));
-
-      loop_step = wait_for_GPS; // Move on
     }
     break;
-
+    
     // ************************************************************************************************
-    // Wait for the GPS time to be valid and for the position fix to be 3D
-    case wait_for_GPS:
+    // Wait for the GNSS time to be valid and for the position fix to be 3D
+    case start_GNSS:
+    {
+      // Enable power for the ZOE-M8Q
+      pinMode(GNSS_PWR_EN_Pin, OUTPUT);
+      digitalWrite(GNSS_PWR_EN_Pin, LOW); // We need to pull the EN pin low to enable power for the GNSS
+    
+      delay(1000); // Give the ZOE time to start up
+    
+      Serial.println(F("Starting the u-blox GNSS module..."));
+      Serial.println();
+    
+      //myGNSS.enableDebugging(); // Uncomment this line to see helpful debug messages on Serial
+    
+      if (myGNSS.begin() == false) //Connect to the ZOE-M8Q using Wire port
+      {
+        Serial.println(F("u-blox ZOE-M8Q GNSS not detected at default I2C address. Please check the smôl stack-up and flexible circuits."));
+        powerDownDuration = 5; // Power-down for 5 seconds and try again
+        loop_step = power_down;
+      }
+      else
+      {
+        loop_step = wait_for_GNSS;
+      }
+    
+      myGNSS.setI2COutput(COM_TYPE_UBX); //Set the I2C port to output UBX only (turn off NMEA noise)
+      myGNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); //Save (only) the current ioPortsettings to flash and BBR
+    }
+    break;
+    
+    // ************************************************************************************************
+    // Wait for the GNSS time to be valid and for the position fix to be 3D
+    case wait_for_GNSS:
     {
       delay(250); // Let's not pound the u-blox too hard...
 
-      // Read the GPS. Check that the time is valid. It should be by now as we have waited for the ARTIC to start!
+      // Read the GNSS. Check that the time is valid.
       boolean timeValid = myGNSS.getTimeValid();
       timeValid = myGNSS.getTimeValid(); // Call getTimeValid twice to ensure we have fresh data
       Serial.print(F("GPS time is "));
       if (timeValid == false) Serial.print(F("not "));
       Serial.println(F("valid"));
 
-      // Read the GPS. Check that the position fix is 3D. It should be by now as we have just waited for the ARTIC to start!
+      // Read the GNSS. Check that the position fix is 3D.
       uint8_t fixType = myGNSS.getFixType();
       Serial.print(F("GPS position fix type is "));
       Serial.println(fixType);
@@ -286,7 +251,7 @@ void loop()
 
     // ************************************************************************************************
     // Read the AOP
-    // Read the time, latitude and longitude from GPS
+    // Read the time, latitude and longitude from GNSS
     // Calculate the time of the next satellite pass
     case calculate_next_pass:
     {
@@ -413,6 +378,17 @@ void loop()
       {
         Serial.println(F("GPS time glitch? Ignoring..."));
       }
+      // Check if we should power down
+      else if (secsRemaining > (repetitionPeriod + 25))
+      {
+        powerDownDuration = secsRemaining - (repetitionPeriod + 20); // Wake up repetitionPeriod + 20 seconds before the next transmit
+        loop_step = power_down;
+      }
+      // Check if we need to power-on the ARTIC
+      else if ((secsRemaining < 20) && (articIsOn == false))
+      {
+        loop_step = power_on_ARTIC;
+      }
       // Check if we should start the TX
       else if (secsRemaining <= 0)
       {
@@ -420,6 +396,72 @@ void loop()
         Serial.println(F("*** STARTING TX ***"));
         Serial.println();
         loop_step = ARTIC_TX; // Move on
+      }
+    }
+    break;
+
+    // ************************************************************************************************
+    // Power-on the ARTIC
+    case power_on_ARTIC:
+    {
+      SPI.begin();
+    
+      // Uncomment the next line to enable the helpful debug messages
+      //myARTIC.enableDebugging(); // Enable debug messages to Serial
+    
+      Serial.println(F("Starting the ARTIC R2..."));
+      Serial.println();
+
+      bool success = true; // Flag if the ARTIC configuratyion is successful
+    
+      // Begin the ARTIC: enable power and upload firmware or boot from flash
+      success &= myARTIC.beginSmol(CS_Pin, ARTIC_PWR_EN_Pin); // Default to using Wire to communicate with the PCA9536 I2C-GPIO chip on the smôl ARTIC R2
+        
+      success &= myARTIC.setTCXOControl(1.8, true); // Set the TCXO voltage to 1.8V and autoDisable to 1
+      
+      success &= myARTIC.setTCXOWarmupTime(tcxoWarmupTime); // Set the TCXO warm-up time
+      
+      success &= myARTIC.setSatelliteDetectionTimeout(60); // Set the satellite detection timeout to 60 seconds
+
+      // Set the TX mode to ARGOS 3 PTT-A3
+      ARTIC_R2_MCU_Command_Result result = myARTIC.sendConfigurationCommand(CONFIG_CMD_SET_PTT_A3_TX_MODE);
+      myARTIC.printCommandResult(result); // Pretty-print the command result to Serial
+      success &= (result != ARTIC_R2_MCU_COMMAND_ACCEPTED);
+
+      // Read and print the ARGOS configuration
+      if (success)
+      {
+        ARGOS_Configuration_Register configuration;
+        myARTIC.readARGOSconfiguration(&configuration);
+        myARTIC.printARGOSconfiguration(configuration);
+      }
+
+      // Set the ARGOS 2/3 TX frequency to 401.630 MHz
+      // From AS3-SP-516-2098-CNES:
+      // The transmission frequency for PTT/PMT-A2 platforms shall be set between 399.91 MHz to 401.68 MHz.
+      // Due to frequency regulations, the frequency ranges [400.05 MHz to 401.0 MHz] and [401.2 MHz to 401.3 MHz] are forbidden for A2 transmissions.
+      success &= myARTIC.setARGOS23TxFrequency(401.630);
+
+      // Print the TX frequency
+      if (success)
+      {
+        float tx23freq = myARTIC.getARGOS23TxFrequency();
+        Serial.print(F("The ARGOS 2/3 TX Frequency is "));
+        Serial.print(tx23freq, 3);
+        Serial.println(F(" MHz."));
+      }
+
+      if (success)
+      {
+        // ARTIC power-on and configuration was successful. Wait for next transmit.
+        articIsOn = true;
+        loop_step = wait_for_next_pass;
+      }
+      else
+      {
+        Serial.println("ARTIC R2 not detected. Please check the smôl stack-up and flexible circuits.");
+        powerDownDuration = 5; // Power-down for 5 seconds and try again
+        loop_step = power_down;
       }
     }
     break;
@@ -444,9 +486,9 @@ void loop()
         Serial.println();
 
         // Configure the Tx payload for ARGOS PTT-A2 using our platform ID and the latest lat/lon
-        if (myARTIC.setPayloadARGOS2LatLon(PLATFORM_ID, lat_tx, lon_tx) == false)
+        if (myARTIC.setPayloadARGOS3LatLon(PLATFORM_ID, lat_tx, lon_tx) == false)
         {
-          Serial.println(F("setPayloadARGOS2LatLon failed!"));
+          Serial.println(F("setPayloadARGOS3LatLon failed!"));
           Serial.println();
           // Read the payload back again and print it
           myARTIC.readTxPayload();
@@ -554,10 +596,32 @@ void loop()
           Serial.println();
           Serial.println("Calculating next TX window...");
           Serial.println();
-          loop_step = wait_for_GPS; // Do over...
+          loop_step = wait_for_GNSS; // Do over...
         }
       }
     }
     break;
+
+    // ************************************************************************************************
+    // Power-down
+    case power_down:
+    {
+      digitalWrite(GNSS_PWR_EN_Pin, HIGH); // Disable power for the ZOE-M8Q
+      digitalWrite(ARTIC_PWR_EN_Pin, LOW); // Disable power for the ARTIC
+
+      myPowerBoard.setPowerdownDurationWDTInts(powerDownDuration); // Set the power-down duration
+
+      Serial.print(F("Power-down for "));
+      Serial.print(powerDownDuration);
+      Serial.println(F(" seconds..."));
+      Serial.println();
+      Serial.flush();
+    
+      myPowerBoard.powerDownNow(); // Thank you and good night...
+      while (1)
+        ; // Wait for power board to power back on again
+    }
+    break;
+    
   }
 }
