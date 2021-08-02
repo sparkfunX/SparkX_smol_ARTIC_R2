@@ -221,11 +221,10 @@ void loop()
       }
       else
       {
+        myGNSS.setI2COutput(COM_TYPE_UBX); //Set the I2C port to output UBX only (turn off NMEA noise)
+        myGNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); //Save (only) the current ioPortsettings to flash and BBR
         loop_step = wait_for_GNSS;
       }
-    
-      myGNSS.setI2COutput(COM_TYPE_UBX); //Set the I2C port to output UBX only (turn off NMEA noise)
-      myGNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); //Save (only) the current ioPortsettings to flash and BBR
     }
     break;
     
@@ -505,9 +504,8 @@ void loop()
           myARTIC.readTxPayload();
           myARTIC.printTxPayload();
           Serial.println();
-          Serial.println(F("Freezing..."));
-          while (1)
-            ; // Do nothing more
+          powerDownDuration = 5; // Power-down for 5 seconds and try again
+          loop_step = power_down;
         }
 
 /*
@@ -534,12 +532,12 @@ void loop()
         Serial.println(F("ARTIC_R2_MCU_Command_Result:"));
         myARTIC.printCommandResult(result); // Pretty-print the command result to Serial
         Serial.println();
-        Serial.println("Freezing...");
-        while (1)
-          ; // Do nothing more
+        powerDownDuration = 5; // Power-down for 5 seconds and try again
+        loop_step = power_down;
       }
 
-      loop_step = wait_for_ARTIC_TX; // Move on
+      if (loop_step != power_down)
+        loop_step = wait_for_ARTIC_TX; // Move on
     }
     break;
 
@@ -587,27 +585,29 @@ void loop()
         // Clear INT1
         if (myARTIC.clearInterrupts(1) == false)
         {
-          Serial.println("clearInterrupts failed! Freezing...");
-          while (1)
-            ; // Do nothing more
-        }
-
-        remainingTransmits--; // Decrement the remaining number of satellite transmits
-        if (remainingTransmits > 0) // Are we done?
-        {
-          nextTransmitTime += repetitionPeriod;
-          nextTransmitTimeActual = nextTransmitTime + random((-0.1 * repetitionPeriod), (0.1 * repetitionPeriod));
-          nextTransmitTimeActual -= tcxoWarmupTime; // Start the transmit early to compensate for the TCXO warmup time
-          loop_step = wait_for_next_pass; // Wait for next transmit
+          Serial.println("clearInterrupts failed!");
+          powerDownDuration = 5; // Power-down for 5 seconds and try again
+          loop_step = power_down;
         }
         else
         {
-          Serial.println();
-          Serial.println("All transmission attempts are complete!");
-          Serial.println();
-          Serial.println("Calculating next TX window...");
-          Serial.println();
-          loop_step = calculate_next_pass; // Do over...
+          remainingTransmits--; // Decrement the remaining number of satellite transmits
+          if (remainingTransmits > 0) // Are we done?
+          {
+            nextTransmitTime += repetitionPeriod;
+            nextTransmitTimeActual = nextTransmitTime + random((-0.1 * repetitionPeriod), (0.1 * repetitionPeriod));
+            nextTransmitTimeActual -= tcxoWarmupTime; // Start the transmit early to compensate for the TCXO warmup time
+            loop_step = wait_for_next_pass; // Wait for next transmit
+          }
+          else
+          {
+            Serial.println();
+            Serial.println("All transmission attempts are complete!");
+            Serial.println();
+            Serial.println("Calculating next TX window...");
+            Serial.println();
+            loop_step = calculate_next_pass; // Do over...
+          }
         }
       }
     }
