@@ -113,8 +113,8 @@ ARTIC_R2 myARTIC;
 SFE_UBLOX_GNSS myGNSS;
 
 #include "SparkFun_smol_Power_Board.h" // Click here to get the library: http://librarymanager/All#SparkFun_smol_Power_Board
-smolPowerLiPo myPowerBoard; // Uncomment this line to use the smôl Power Board LiPo
 //smolPowerAAA myPowerBoard; // Uncomment this line to use the smôl Power Board AAA
+smolPowerLiPo myPowerBoard; // Uncomment this line to use the smôl Power Board LiPo
 
 // Pin assignments for the smôl stack-up described above
 int CS_Pin = 5;            // smôl CS0 = ESP32 Pin 5
@@ -181,6 +181,8 @@ void loop()
       }
       else
       {
+        myPowerBoard.setWatchdogTimerPrescaler(SFE_SMOL_POWER_WDT_TIMEOUT_1s); // Set the WDT timeout (prescaler) to 1 second
+
         myPowerBoard.setADCVoltageReference(SFE_SMOL_POWER_USE_ADC_REF_VCC); // Select VCC as the voltage reference
         Serial.print(F("Battery voltage is "));
         Serial.println(myPowerBoard.getBatteryVoltage());
@@ -598,7 +600,7 @@ void loop()
           Serial.println();
           Serial.println("Calculating next TX window...");
           Serial.println();
-          loop_step = wait_for_GNSS; // Do over...
+          loop_step = wait_for_next_pass; // Do over...
         }
       }
     }
