@@ -20,6 +20,7 @@
   smôl ESP32:            https://www.sparkfun.com/products/18362
   
   smôl Power Board LiPo: https://www.sparkfun.com/products/18359 (Optional)
+  smôl Power Board AAA:  https://www.sparkfun.com/products/18360 (Optional)
 
   The way the boards are stacked is important:
 
@@ -103,7 +104,7 @@ float min_elevation = 15.0;
 #include "SparkFun_ARGOS_ARTIC_R2_Arduino_Library.h" // Click here to get the library: http://librarymanager/All#SparkFun_ARGOS_ARTIC_R2
 ARTIC_R2 myARTIC;
 
-#include <Wire.h> //Needed for I2C to GNSS
+#include <Wire.h> //Needed for I2C to ARTIC R2 GPIO and GNSS
 
 #include "SparkFun_u-blox_GNSS_Arduino_Library.h" // Click here to get the library: http://librarymanager/All#SparkFun_u-blox_GNSS
 SFE_UBLOX_GNSS myGNSS;
