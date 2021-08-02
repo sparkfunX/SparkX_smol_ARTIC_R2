@@ -43,6 +43,13 @@
   The ESP32 GPIO0 (Digital Pin 27) controls the power for the ARTIC R2
   The ESP32 GPIO1 (Digital Pin 26) controls the power for the ZOE-M8Q
   ARTIC R2 uses SPI Chip Select 0 (ESP32 Digital Pin 5)
+
+  Make sure that you select the correct power board in the code below.
+  Select:
+    smolPowerLiPo myPowerBoard
+  or:
+    smolPowerAAA myPowerBoard
+  below.
   
   This example:
     enables power for and begins the ZOE-M8Q;
