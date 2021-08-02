@@ -216,7 +216,7 @@ void loop()
       if (myGNSS.begin() == false) //Connect to the ZOE-M8Q using Wire port
       {
         Serial.println(F("u-blox ZOE-M8Q GNSS not detected at default I2C address. Please check the smôl stack-up and flexible circuits."));
-        powerDownDuration = 5; // Power-down for 5 seconds and try again
+        powerDownDuration = 5; // Power-down for 5 seconds and try again (the power-down duration is a useful diagnostic)
         loop_step = power_down;
       }
       else
@@ -436,7 +436,7 @@ void loop()
       // Set the TX mode to ARGOS 3 PTT-A3
       ARTIC_R2_MCU_Command_Result result = myARTIC.sendConfigurationCommand(CONFIG_CMD_SET_PTT_A3_TX_MODE);
       myARTIC.printCommandResult(result); // Pretty-print the command result to Serial
-      success &= (result != ARTIC_R2_MCU_COMMAND_ACCEPTED);
+      success &= (result == ARTIC_R2_MCU_COMMAND_ACCEPTED);
 
       // Read and print the ARGOS configuration
       if (success)
@@ -470,7 +470,7 @@ void loop()
       else
       {
         Serial.println("ARTIC R2 not detected. Please check the smôl stack-up and flexible circuits.");
-        powerDownDuration = 5; // Power-down for 5 seconds and try again
+        powerDownDuration = 6; // Power-down for 6 seconds and try again (the power-down duration is a useful diagnostic)
         loop_step = power_down;
       }
     }
@@ -504,7 +504,7 @@ void loop()
           myARTIC.readTxPayload();
           myARTIC.printTxPayload();
           Serial.println();
-          powerDownDuration = 5; // Power-down for 5 seconds and try again
+          powerDownDuration = 7; // Power-down for 7 seconds and try again (the power-down duration is a useful diagnostic)
           loop_step = power_down;
         }
 
@@ -532,7 +532,7 @@ void loop()
         Serial.println(F("ARTIC_R2_MCU_Command_Result:"));
         myARTIC.printCommandResult(result); // Pretty-print the command result to Serial
         Serial.println();
-        powerDownDuration = 5; // Power-down for 5 seconds and try again
+        powerDownDuration = 8; // Power-down for 8 seconds and try again (the power-down duration is a useful diagnostic)
         loop_step = power_down;
       }
 
@@ -586,7 +586,7 @@ void loop()
         if (myARTIC.clearInterrupts(1) == false)
         {
           Serial.println("clearInterrupts failed!");
-          powerDownDuration = 5; // Power-down for 5 seconds and try again
+          powerDownDuration = 9; // Power-down for 9 seconds and try again (the power-down duration is a useful diagnostic)
           loop_step = power_down;
         }
         else
@@ -620,7 +620,7 @@ void loop()
       digitalWrite(GNSS_PWR_EN_Pin, HIGH); // Disable power for the ZOE-M8Q
       digitalWrite(ARTIC_PWR_EN_Pin, LOW); // Disable power for the ARTIC
 
-      myPowerBoard.setPowerdownDurationWDTInts(powerDownDuration); // Set the power-down duration
+      myPowerBoard.setPowerdownDurationWDTInts(powerDownDuration); // Set the power-down duration (the I2C traffic this generates is a useful diagnostic)
 
       Serial.print(F("Power-down for "));
       Serial.print(powerDownDuration);
