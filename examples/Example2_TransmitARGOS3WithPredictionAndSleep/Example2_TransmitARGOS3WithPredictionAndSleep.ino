@@ -46,9 +46,9 @@
 
   Make sure that you select the correct power board in the code below.
   Select:
-    smolPowerLiPo myPowerBoard
+    smolPowerLiPo myPowerBoard;
   or:
-    smolPowerAAA myPowerBoard
+    smolPowerAAA myPowerBoard;
   below.
   
   This example:
@@ -607,7 +607,7 @@ void loop()
           Serial.println();
           Serial.println("Calculating next TX window...");
           Serial.println();
-          loop_step = wait_for_next_pass; // Do over...
+          loop_step = calculate_next_pass; // Do over...
         }
       }
     }
