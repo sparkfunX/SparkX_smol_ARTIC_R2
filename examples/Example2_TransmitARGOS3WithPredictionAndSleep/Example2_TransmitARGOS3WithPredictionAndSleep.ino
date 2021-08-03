@@ -391,10 +391,10 @@ void loop()
       // Check if we should power down
       else if (secsRemaining > (repetitionPeriod + 25))
       {
-        if ((secsRemaining - (repetitionPeriod + 20)) <= 65530)
+        if ((secsRemaining - (repetitionPeriod + 20)) <= 21600) // Is powerDownDuration <= 6 hours?
           powerDownDuration = (uint16_t)(secsRemaining - (repetitionPeriod + 20)); // Wake up repetitionPeriod + 20 seconds before the next transmit
         else
-          powerDownDuration = 65530; // powerDownDuration is 16-bit
+          powerDownDuration = 21600; // Limit powerDownDuration to 6 hours
         loop_step = power_down;
       }
       // Check if we need to power-on the ARTIC
