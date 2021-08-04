@@ -392,10 +392,19 @@ void loop()
       else if (secsRemaining > (repetitionPeriod + 25))
       {
         if ((secsRemaining - (repetitionPeriod + 20)) <= 21600) // Is powerDownDuration <= 6 hours?
+        {
           powerDownDuration = (uint16_t)(secsRemaining - (repetitionPeriod + 20)); // Wake up repetitionPeriod + 20 seconds before the next transmit
-        else
+          loop_step = power_down;
+        }
+        else if (secsRemaining < 86400) // Only set powerDownDuration if secsRemaining is < 24 hours (ignore GPS time glitch)
+        {
           powerDownDuration = 21600; // Limit powerDownDuration to 6 hours
-        loop_step = power_down;
+          loop_step = power_down;
+        }
+        else
+        {
+          Serial.println(F("GPS time glitch? Ignoring..."));
+        }
       }
       // Check if we need to power-on the ARTIC
       else if ((secsRemaining < 20) && (articIsOn == false))
