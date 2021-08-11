@@ -50,6 +50,8 @@
   or:
     smolPowerAAA myPowerBoard;
   below.
+
+  Set the Board to: SparkFun ESP32 Arduino \ SparkFun ESP32 Thing
   
   This example:
     enables power for and begins the ZOE-M8Q;
@@ -96,6 +98,9 @@ const uint32_t PLATFORM_ID = 0x01234567; // Update this with your Platform ID
 const uint32_t repetitionPeriod = 90; // The delay in seconds between transmits a.k.a. the repetition period (CLS will have told you what your repetition period should be)
 const uint8_t numberTransmits = 5; // The number of transmit attempts for each pass (** Make sure this is >= 1 **)
 const uint32_t tcxoWarmupTime = 10; // Start the transmit this many seconds early to compensate for the TCXO warmup time
+const uint32_t articBootTimeMax = 10; // Define the maximum time the ARTIC should take to boot: 10 seconds for SPI, 3 seconds for Flash
+const unsigned long maxGNSSfixTime = 60; // Define how long we should wait for a GNSS fix (seconds)
+const float gnssFixDuty = 0.1; // When attempting a GNSS fix, define the on duty cycle
 
 const uint8_t numARGOSsatellites = 8; // Change this if required to match the number of satellites in the AOP
 
@@ -108,6 +113,8 @@ const char AOP[] =      " A1 6 0 0 1 2021  7 30 22 35  3  6890.719  97.4674  107
 //  Set this to 5 to 20 degrees if you have a clear view to the horizon.
 //  45 degrees is really only suitable for urban environments and will severely limit the number of transmit windows...
 float min_elevation = 15.0;
+
+#include <sys/time.h> // Needed for ESP32 RTC
 
 #include <SPI.h>
 
@@ -133,27 +140,33 @@ int GNSS_PWR_EN_Pin = 26;  // smôl GPIO1 = ESP32 Pin 26
 // Loop Steps - these are used by the switch/case in the main loop
 // This structure makes it easy to jump between any of the steps
 typedef enum {
-  start_power_board,   // Start communication with the power board
-  start_GNSS,          // Power-on the GNSS
-  wait_for_GNSS,       // Wait for the GNSS time and position to be valid
-  calculate_next_pass, // Read the GNSS time, lat and lon. Calculate the next satellite pass
-  wait_for_next_pass,  // Wait for the next satellite pass
-  power_on_ARTIC,      // Power-on the ARTIC, set the satellite detection timeout and TX mode
-  ARTIC_TX,            // Start the ARTIC TX
-  wait_for_ARTIC_TX,   // Wait for the ARTIC to transmit
-  power_down           // Power-down until the next transmit window
+  start_power_board,              // Start communication with the power board
+  start_GNSS,                     // Power-on the GNSS
+  wait_for_GNSS,                  // Wait for the GNSS time and position to be valid
+  set_RTC,                        // Set the ESP32's RTC to GNSS time
+  calculate_next_pass,            // Read the GNSS time, lat and lon. Calculate the next satellite pass
+  wait_for_next_pass,             // Wait for the next satellite pass
+  power_on_ARTIC,                 // Power-on the ARTIC, set the satellite detection timeout and TX mode
+  wait_for_ARTIC_TX_to_start,     // Wait for the ARTIC transmit to start
+  ARTIC_TX,                       // Start the ARTIC TX
+  wait_for_ARTIC_TX_to_complete,  // Wait for the ARTIC to transmit
+  power_down                      // Power-down until the next transmit window
 } loop_steps;
 loop_steps loop_step = start_power_board; // Initialize loop_step
 
 // AS3-SP-516-2098-CNES specifies a ±10% 'jitter' on the repetition period to reduce the risk of transmission collisions
 uint32_t nextTransmitTime; // Time of the next satellite transmission (before jitter is added)
-uint32_t nextTransmitTimeActual; // Actual time of the next satellite transmission (including jitter)
+uint32_t nextTransmitStart; // Time the next satellite transmission will start (including jitter and tcxoWarmupTime and articBootTime)
+uint32_t nextTransmitPowerOn; // Time the ARTIC will be powered on for next satellite transmission will start (including jitter articBootTime)
 uint8_t remainingTransmits; // Remaining number of satellite transmits
-bool firstTransmit; // Flag to indicate if this is the first transmission on this satellite pass
 float lat_tx; // The latitude included in the transmitted message
 float lon_tx; // The longitude included in the transmitted message
 uint16_t powerDownDuration; // The power-down duration in seconds
-bool articIsOn = false; // Flag to indicate if the ARTIC has been powered up 
+bool articIsOn = false; // Flag to indicate if the ARTIC has been powered up
+bool firstTransmit = true; // Flag to indicate if this is the first transmit
+unsigned long startEvent; // Load this with millis() at the start of an event
+float gnssLatitude; // Store the latitude (degrees)
+float gnssLongitude; // Store the longitude (degrees)
 
 void setup()
 {
@@ -184,7 +197,8 @@ void loop()
       if (myPowerBoard.begin() == false) //Connect to the power board
       {
         Serial.println(F("smôl Power Board not detected at default I2C address. Please check the smôl stack-up and flexible circuits."));
-        delay(5000); // Try again in five seconds
+        esp_sleep_enable_timer_wakeup(5000000); // Try again in five seconds
+        esp_light_sleep_start();      
       }
       else
       {
@@ -206,8 +220,10 @@ void loop()
       pinMode(GNSS_PWR_EN_Pin, OUTPUT);
       digitalWrite(GNSS_PWR_EN_Pin, LOW); // We need to pull the EN pin low to enable power for the GNSS
     
-      delay(1000); // Give the ZOE time to start up
-    
+      // Give the ZOE time to start up
+          esp_sleep_enable_timer_wakeup(1000000); //1 second
+      esp_light_sleep_start();      
+
       Serial.println(F("Starting the u-blox GNSS module..."));
       Serial.println();
     
@@ -223,6 +239,8 @@ void loop()
       {
         myGNSS.setI2COutput(COM_TYPE_UBX); //Set the I2C port to output UBX only (turn off NMEA noise)
         myGNSS.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); //Save (only) the current ioPortsettings to flash and BBR
+        startEvent = millis(); // Record the time
+        myGNSS.getTimeValid(); // Call getTimeValid twice to ensure we have fresh data
         loop_step = wait_for_GNSS;
       }
     }
@@ -232,14 +250,24 @@ void loop()
     // Wait for the GNSS time to be valid and for the position fix to be 3D
     case wait_for_GNSS:
     {
-      delay(250); // Let's not pound the u-blox too hard...
+      esp_sleep_enable_timer_wakeup(500000); //0.5 seconds
+      esp_light_sleep_start();
 
       // Read the GNSS. Check that the time is valid.
-      boolean timeValid = myGNSS.getTimeValid();
-      timeValid = myGNSS.getTimeValid(); // Call getTimeValid twice to ensure we have fresh data
+      boolean timeValid = myGNSS.getTimeValid(); // Call getTimeValid twice to ensure we have fresh data
       Serial.print(F("GPS time is "));
       if (timeValid == false) Serial.print(F("not "));
       Serial.println(F("valid"));
+
+      boolean dateValid = myGNSS.getDateValid();
+      Serial.print(F("GPS date is "));
+      if (dateValid == false) Serial.print(F("not "));
+      Serial.println(F("valid"));
+
+      boolean timeFullyResolved = myGNSS.getTimeFullyResolved();
+      Serial.print(F("GPS time is "));
+      if (timeFullyResolved == false) Serial.print(F("not "));
+      Serial.println(F("fully resolved"));
 
       // Read the GNSS. Check that the position fix is 3D.
       uint8_t fixType = myGNSS.getFixType();
@@ -247,15 +275,63 @@ void loop()
       Serial.println(fixType);
       Serial.println();
 
-      if ((timeValid == true) && (fixType >= 3)) // Check if both time and fix are valid
+      if (timeValid && dateValid && timeFullyResolved && (fixType >= 3)) // Check if time, date and fix are valid
       {
-        loop_step = calculate_next_pass; // Move on
+        loop_step = set_RTC; // Move on
+      }
+      else if (millis() > (startEvent + (maxGNSSfixTime * 1000))) // Have we been powered up for maxGNSSfixTime seconds?
+      {
+        float offFraction = 1.0 - gnssFixDuty; // Calculate the powerDownDuration
+        float period = maxGNSSfixTime / gnssFixDuty;
+        powerDownDuration = (uint16_t)(period * offFraction);
+        loop_step = power_down;        
       }
       else
       {
         Serial.println(F("Waiting for GPS time to be valid and the fix type to be 3D..."));
         Serial.println();
       }
+    }
+    break;
+
+    // ************************************************************************************************
+    // Read the time, latitude and longitude from GNSS
+    // Set the ESP32's RTC
+    case set_RTC:
+    {
+      // Read the GPS time, latitude and longitude. Convert to epoch.
+      uint32_t epochNow = myARTIC.convertGPSTimeToEpoch(myGNSS.getYear(), myGNSS.getMonth(), myGNSS.getDay(), myGNSS.getHour(), myGNSS.getMinute(), myGNSS.getSecond()); // Convert GPS date & time to epoch
+      Serial.print(F("GNSS time is: "));
+      Serial.print(myARTIC.convertEpochToDateTime(epochNow));
+      Serial.println(F(" UTC"));
+      Serial.print(F("The number of seconds since the epoch is: "));
+      Serial.println(epochNow);
+
+      // Read the GPS lat and lon. Convert to float.
+      gnssLatitude = ((float)myGNSS.getLatitude()) / 10000000; // Convert from degrees^-7
+      gnssLongitude = ((float)myGNSS.getLongitude()) / 10000000; // Convert from degrees^-7
+
+      // Print the lat and lon
+      Serial.print(F("GPS Latitude is: "));
+      Serial.println(gnssLatitude, 4);
+      Serial.print(F("GPS Longitude is: "));
+      Serial.println(gnssLongitude, 4);
+
+      // Set the RTC
+      struct timeval tv;
+      tv.tv_sec = epochNow;
+      tv.tv_usec = 0;
+      settimeofday(&tv, NULL);
+
+      // Read the RTC
+      gettimeofday(&tv, NULL);
+      Serial.print(F("RTC set to "));
+      Serial.println(myARTIC.convertEpochToDateTime(tv.tv_sec));
+
+      // Power down the GNSS now to save power - we'll use the RTC from now on
+      digitalWrite(GNSS_PWR_EN_Pin, HIGH); // Disable power for the ZOE-M8Q
+
+      loop_step = calculate_next_pass; // Move on
     }
     break;
 
@@ -283,26 +359,19 @@ void loop()
       }
 */
 
-      // Read the GPS time, latitude and longitude. Convert to epoch.
-      uint32_t epochNow = myARTIC.convertGPSTimeToEpoch(myGNSS.getYear(), myGNSS.getMonth(), myGNSS.getDay(), myGNSS.getHour(), myGNSS.getMinute(), myGNSS.getSecond()); // Convert GPS date & time to epoch
-      Serial.print(F("GPS time is: "));
+      // Read the RTC
+      struct timeval tv;
+      gettimeofday(&tv, NULL);
+      uint32_t epochNow = tv.tv_sec;
+
+      Serial.print(F("RTC time is: "));
       Serial.print(myARTIC.convertEpochToDateTime(epochNow));
       Serial.println(F(" UTC"));
       Serial.print(F("The number of seconds since the epoch is: "));
       Serial.println(epochNow);
 
-      // Read the GPS lat and lon. Convert to float.
-      float lat = ((float)myGNSS.getLatitude()) / 10000000; // Convert from degrees^-7
-      float lon = ((float)myGNSS.getLongitude()) / 10000000; // Convert from degrees^-7
-
-      // Print the lat and lon
-      Serial.print(F("GPS Latitude is: "));
-      Serial.println(lat, 4);
-      Serial.print(F("GPS Longitude is: "));
-      Serial.println(lon, 4);
-
       // Predict the next satellite pass
-      uint32_t nextSatellitePass = myARTIC.predictNextSatellitePass(satelliteParameters, min_elevation, numARGOSsatellites, lon, lat, epochNow);
+      uint32_t nextSatellitePass = myARTIC.predictNextSatellitePass(satelliteParameters, min_elevation, numARGOSsatellites, gnssLongitude, gnssLatitude, epochNow);
 
       // Print the prediction
       Serial.print(F("The middle of the next satellite pass will be at: "));
@@ -314,24 +383,25 @@ void loop()
       if (numberTransmits >= 1)
       {
         nextTransmitTime = nextSatellitePass - (((numberTransmits - 1) / 2) * repetitionPeriod);
-        nextTransmitTimeActual = nextTransmitTime + random((-0.1 * repetitionPeriod), (0.1 * repetitionPeriod));
-        nextTransmitTimeActual -= tcxoWarmupTime; // Start the transmit early to compensate for the TCXO warmup time
+        nextTransmitStart = nextTransmitTime + random((-0.1 * repetitionPeriod), (0.1 * repetitionPeriod)); // Add the jitter
+        nextTransmitStart -= tcxoWarmupTime; // Start the transmit early to compensate for the TCXO warmup time
+        nextTransmitPowerOn = nextTransmitTime - articBootTimeMax - tcxoWarmupTime - (repetitionPeriod / 10); // Power-on early to compensate for the ARTIC boot time
         remainingTransmits = numberTransmits; // Remaining number of satellite transmits
-
-        //nextTransmitTimeActual = epochNow + 10; // Uncomment this line if you want to test Tx as soon as possible
+        firstTransmit = true; // Flag that this is the first transmit
       }
       else
       {
         remainingTransmits = 0; // Remaining number of satellite transmits
       }
 
-      // If transmits should have already started (i.e. nextTransmitTime < epochNow)
+      // If transmits should have already started (i.e. nextTransmitPowerOn < epochNow)
       // then add repetitionPeriod to nextTransmitTime and decrement remainingTransmits
       // to avoid violating the repetitionPeriod on the next transmit
-      while ((remainingTransmits > 0) && (nextTransmitTime < epochNow))
+      while ((remainingTransmits > 0) && (nextTransmitPowerOn < epochNow))
       {
         nextTransmitTime += repetitionPeriod;
-        nextTransmitTimeActual = nextTransmitTime; // Do not subtract the jitter or tcxoWarmup as we do not want the next transmit to be in the past
+        nextTransmitStart += repetitionPeriod;
+        nextTransmitPowerOn += repetitionPeriod;
         remainingTransmits--;
       }
 
@@ -340,10 +410,8 @@ void loop()
         Serial.print(F("Transmit attempt 1 of "));
         Serial.print(remainingTransmits);
         Serial.print(F(" will take place at: "));
-        Serial.print(myARTIC.convertEpochToDateTime(nextTransmitTimeActual));
+        Serial.print(myARTIC.convertEpochToDateTime(nextTransmitTime));
         Serial.println(F(" UTC"));
-
-        firstTransmit = true; // Set the firstTransmit flag
 
         loop_step = wait_for_next_pass; // Move on
       }
@@ -360,20 +428,24 @@ void loop()
     // Wait until the next satellite pass
     case wait_for_next_pass:
     {
-      delay(250); // Let's not pound the u-blox too hard...
+      // Go round this case twice per second
+      esp_sleep_enable_timer_wakeup(500000); //0.5 seconds
+      esp_light_sleep_start();
+      
+      // Read the RTC
+      struct timeval tv;
+      gettimeofday(&tv, NULL);
+      uint32_t epochNow = tv.tv_sec;
 
-      // Read the GPS time
-      uint32_t epochNow = myARTIC.convertGPSTimeToEpoch(myGNSS.getYear(), myGNSS.getMonth(), myGNSS.getDay(), myGNSS.getHour(), myGNSS.getMinute(), myGNSS.getSecond()); // Convert GPS date & time to epoch
-
-      // Calculate how many seconds remain until the next transmit
-      int32_t secsRemaining = (int32_t)nextTransmitTimeActual - (int32_t)epochNow;
+      // Calculate how many seconds remain until we power-on for the next transmit
+      int32_t secsRemaining = (int32_t)nextTransmitPowerOn - (int32_t)epochNow;
 
       // Count down in intervals of 100, then 10, then 1 second
       if (((secsRemaining >= 100) && (secsRemaining % 100 == 0)) ||
         ((secsRemaining < 100) && (secsRemaining % 10 == 0)) ||
         (secsRemaining < 10))
       {
-        Serial.print(F("Transmit will take place in "));
+        Serial.print(F("Power-on for next transmit will take place in "));
         Serial.print(secsRemaining);
         Serial.print(F(" second"));
         if (secsRemaining != 1) // Attention to detail is everything... :-)
@@ -382,42 +454,37 @@ void loop()
           Serial.println();
       }
 
-      // Check for a GPS time glitch
-      // Stay in wait_for_next_pass if secsRemaining < -15
-      if (secsRemaining < -15)
+      // Power down completely if the time to the next transmit power-on
+      // is more than maxGNSSfixTime and if this is the first transmit.
+      if ((secsRemaining > maxGNSSfixTime) && firstTransmit)
       {
-        Serial.println(F("GPS time glitch? Ignoring..."));
-      }
-      // Check if we should power down
-      else if (secsRemaining > (repetitionPeriod + 25))
-      {
-        if ((secsRemaining - (repetitionPeriod + 20)) <= 21600) // Is powerDownDuration <= 6 hours?
+        if (secsRemaining <= (3 * 60 * 60)) // Is powerDownDuration <= 3 hours?
         {
-          powerDownDuration = (uint16_t)(secsRemaining - (repetitionPeriod + 20)); // Wake up repetitionPeriod + 20 seconds before the next transmit
-          loop_step = power_down;
-        }
-        else if (secsRemaining < 86400) // Only set powerDownDuration if secsRemaining is < 24 hours (ignore GPS time glitch)
-        {
-          powerDownDuration = 21600; // Limit powerDownDuration to 6 hours
-          loop_step = power_down;
+          powerDownDuration = secsRemaining - maxGNSSfixTime; // Wake up before the next transmit
         }
         else
         {
-          Serial.println(F("GPS time glitch? Ignoring..."));
+          powerDownDuration = (3 * 60 * 60); // Limit powerDownDuration to 3 hours to try and preserve the GNSS ephemeris
         }
+        loop_step = power_down;
       }
-      // Check if we need to power-on the ARTIC
-      else if ((secsRemaining < 20) && (articIsOn == false))
+      // Check if we should power-down just the ARTIC between transmits
+      // (If repetitionPeriod is short ( < (articBootTimeMax - tcxoWarmupTime) ) then nextTransmitPowerOn
+      //  will be in the past and secsRemaining will be negative)
+      else if ((secsRemaining > 0) && articIsOn)
+      {
+        digitalWrite(ARTIC_PWR_EN_Pin, LOW); // Disable power for the ARTIC
+        articIsOn = false;
+      }
+      // Is it time to power-on the ARTIC?
+      else if ((secsRemaining <= 0) && (articIsOn == false))
       {
         loop_step = power_on_ARTIC;
       }
-      // Check if we should start the TX
+      // Is it time to wait for TX to start?
       else if (secsRemaining <= 0)
       {
-        Serial.println();
-        Serial.println(F("*** STARTING TX ***"));
-        Serial.println();
-        loop_step = ARTIC_TX; // Move on
+        loop_step = wait_for_ARTIC_TX_to_start;
       }
     }
     break;
@@ -434,7 +501,7 @@ void loop()
       Serial.println(F("Starting the ARTIC R2..."));
       Serial.println();
 
-      bool success = true; // Flag if the ARTIC configuratyion is successful
+      bool success = true; // Flag if the ARTIC configuration is successful
     
       // Begin the ARTIC: enable power and upload firmware or boot from flash
       success &= myARTIC.beginSmol(CS_Pin, ARTIC_PWR_EN_Pin); // Default to using Wire to communicate with the PCA9536 I2C-GPIO chip on the smôl ARTIC R2
@@ -473,11 +540,22 @@ void loop()
         Serial.println(F(" MHz."));
       }
 
+      // Configure the Tx payload for ARGOS PTT-A2 using our platform ID and the latest lat/lon
+      success &= myARTIC.setPayloadARGOS3LatLon(PLATFORM_ID, gnssLatitude, gnssLongitude);
+
+      // Read the payload back again and print it
+      if (success)
+      {
+        myARTIC.readTxPayload();
+        myARTIC.printTxPayload();
+        Serial.println();
+      }
+
       if (success)
       {
         // ARTIC power-on and configuration was successful. Wait for next transmit.
         articIsOn = true;
-        loop_step = wait_for_next_pass;
+        loop_step = wait_for_ARTIC_TX_to_start;
       }
       else
       {
@@ -489,50 +567,51 @@ void loop()
     break;
 
     // ************************************************************************************************
+    // The ARTIC is on, now wait until it is time to begin the transmit
+    case wait_for_ARTIC_TX_to_start:
+    {
+      // Go round this case twice per second
+      esp_sleep_enable_timer_wakeup(500000); //0.5 seconds
+      esp_light_sleep_start();
+      
+      // Read the RTC
+      struct timeval tv;
+      gettimeofday(&tv, NULL);
+      uint32_t epochNow = tv.tv_sec;
+
+      // Calculate how many seconds remain until we power-on for the next transmit
+      int32_t secsRemaining = (int32_t)nextTransmitStart - (int32_t)epochNow;
+
+      // Count down in intervals of 100, then 10, then 1 second
+      if (((secsRemaining >= 100) && (secsRemaining % 100 == 0)) ||
+        ((secsRemaining < 100) && (secsRemaining % 10 == 0)) ||
+        (secsRemaining < 10))
+      {
+        Serial.print(F("Next transmit will start in "));
+        Serial.print(secsRemaining);
+        Serial.print(F(" second"));
+        if (secsRemaining != 1) // Attention to detail is everything... :-)
+          Serial.println(F("s"));
+        else
+          Serial.println();
+      }
+
+      if (secsRemaining <= 0)
+        loop_step = ARTIC_TX; // Move on
+
+    }
+    break;
+    // ************************************************************************************************
     // Start the ARTIC in Transmit One Package And Go Idle mode
     case ARTIC_TX:
     {
-      // Update the GPS lat and lon - in case we have moved since we calculated the next pass
-      // But only if firstTransmit is true as we want to send the exact same data on each satellite pass
-      if (firstTransmit == true)
-      {
-        lat_tx = ((float)myGNSS.getLatitude()) / 10000000; // Convert from degrees^-7
-        lat_tx = ((float)myGNSS.getLatitude()) / 10000000; // Read the lat twice to ensure we have fresh data
-        lon_tx = ((float)myGNSS.getLongitude()) / 10000000; // Convert from degrees^-7
-
-        // Print the lat and lon
-        Serial.print(F("GPS Latitude is: "));
-        Serial.println(lat_tx, 4);
-        Serial.print(F("GPS Longitude is: "));
-        Serial.println(lon_tx, 4);
-        Serial.println();
-
-        // Configure the Tx payload for ARGOS PTT-A2 using our platform ID and the latest lat/lon
-        if (myARTIC.setPayloadARGOS3LatLon(PLATFORM_ID, lat_tx, lon_tx) == false)
-        {
-          Serial.println(F("setPayloadARGOS3LatLon failed!"));
-          Serial.println();
-          // Read the payload back again and print it
-          myARTIC.readTxPayload();
-          myARTIC.printTxPayload();
-          Serial.println();
-          powerDownDuration = 7; // Power-down for 7 seconds and try again (the power-down duration is a useful diagnostic)
-          loop_step = power_down;
-        }
-
-/*
-        // Read the payload back again and print it
-        myARTIC.readTxPayload();
-        myARTIC.printTxPayload();
-        Serial.println();
-*/
-
-        firstTransmit = false; // Clear the firstTransmit flag
-      }
-
       // Tell the ARTIC to do its thing!
       ARTIC_R2_MCU_Command_Result result = myARTIC.sendMCUinstruction(INST_TRANSMIT_ONE_PACKAGE_AND_GO_IDLE);
-      if (result != ARTIC_R2_MCU_COMMAND_ACCEPTED)
+      if (result == ARTIC_R2_MCU_COMMAND_ACCEPTED)
+      {
+        loop_step = wait_for_ARTIC_TX_to_complete; // Move on        
+      }
+      else
       {
         Serial.println("sendMCUinstruction(INST_TRANSMIT_ONE_PACKAGE_AND_GO_IDLE) failed!");
         Serial.println();
@@ -547,17 +626,16 @@ void loop()
         powerDownDuration = 8; // Power-down for 8 seconds and try again (the power-down duration is a useful diagnostic)
         loop_step = power_down;
       }
-
-      if (loop_step != power_down)
-        loop_step = wait_for_ARTIC_TX; // Move on
     }
     break;
 
     // ************************************************************************************************
     // Start the ARTIC in Transmit One Package And Go Idle mode
-    case wait_for_ARTIC_TX:
+    case wait_for_ARTIC_TX_to_complete:
     {
-      delay(1000); // Check the status every second
+      // Check the status every second
+      esp_sleep_enable_timer_wakeup(1000000);
+      esp_light_sleep_start();      
 
       // Read and print the ARTIC R2 status register
       ARTIC_R2_Firmware_Status status;
@@ -604,11 +682,13 @@ void loop()
         else
         {
           remainingTransmits--; // Decrement the remaining number of satellite transmits
+          firstTransmit = false;
           if (remainingTransmits > 0) // Are we done?
           {
             nextTransmitTime += repetitionPeriod;
-            nextTransmitTimeActual = nextTransmitTime + random((-0.1 * repetitionPeriod), (0.1 * repetitionPeriod));
-            nextTransmitTimeActual -= tcxoWarmupTime; // Start the transmit early to compensate for the TCXO warmup time
+            nextTransmitStart = nextTransmitTime + random((-0.1 * repetitionPeriod), (0.1 * repetitionPeriod)); // Add the jitter
+            nextTransmitStart -= tcxoWarmupTime; // Start the transmit early to compensate for the TCXO warmup time
+            nextTransmitPowerOn = nextTransmitTime - articBootTimeMax - tcxoWarmupTime - (repetitionPeriod / 10); // Power-on early to compensate for the ARTIC boot time
             loop_step = wait_for_next_pass; // Wait for next transmit
           }
           else

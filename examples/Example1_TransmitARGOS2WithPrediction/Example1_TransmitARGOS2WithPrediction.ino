@@ -351,13 +351,13 @@ void loop()
         remainingTransmits = 0; // Remaining number of satellite transmits
       }
 
-      // If transmits should have already started (i.e. nextTransmitTime < epochNow)
+      // If transmits should have already started (i.e. nextTransmitTimeActual < epochNow)
       // then add repetitionPeriod to nextTransmitTime and decrement remainingTransmits
       // to avoid violating the repetitionPeriod on the next transmit
-      while ((remainingTransmits > 0) && (nextTransmitTime < epochNow))
+      while ((remainingTransmits > 0) && (nextTransmitTimeActual < epochNow))
       {
         nextTransmitTime += repetitionPeriod;
-        nextTransmitTimeActual = nextTransmitTime; // Do not subtract the jitter or tcxoWarmup as we do not want the next transmit to be in the past
+        nextTransmitTimeActual += repetitionPeriod;
         remainingTransmits--;
       }
 
@@ -409,8 +409,8 @@ void loop()
       }
 
       // Check for a GPS time glitch
-      // Stay in wait_for_next_pass if secsRemaining < -15
-      if (secsRemaining < -15)
+      // Stay in wait_for_next_pass if secsRemaining is very negative
+      if (secsRemaining < ( 0 - ((repetitionPeriod / 10) + tcxoWarmupTime + 5)))
       {
         Serial.println(F("GPS time glitch? Ignoring..."));
       }
