@@ -191,14 +191,15 @@ void loop()
     {
       Wire.begin();
     
-      Serial.println(F("Starting communication with the power board..."));
       Serial.println();
+      Serial.println(F("Starting communication with the power board..."));
     
       if (myPowerBoard.begin() == false) //Connect to the power board
       {
         Serial.println(F("smôl Power Board not detected at default I2C address. Please check the smôl stack-up and flexible circuits."));
-        esp_sleep_enable_timer_wakeup(5000000); // Try again in five seconds
-        esp_light_sleep_start();      
+        //esp_sleep_enable_timer_wakeup(5000000); // Try again in five seconds
+        //esp_light_sleep_start();
+        delay(5000);
       }
       else
       {
@@ -221,11 +222,12 @@ void loop()
       digitalWrite(GNSS_PWR_EN_Pin, LOW); // We need to pull the EN pin low to enable power for the GNSS
     
       // Give the ZOE time to start up
-          esp_sleep_enable_timer_wakeup(1000000); //1 second
-      esp_light_sleep_start();      
+      //esp_sleep_enable_timer_wakeup(1000000); //1 second
+      //esp_light_sleep_start();      
+      delay(1000);
 
-      Serial.println(F("Starting the u-blox GNSS module..."));
       Serial.println();
+      Serial.println(F("Starting the u-blox GNSS module..."));
     
       //myGNSS.enableDebugging(); // Uncomment this line to see helpful debug messages on Serial
     
@@ -250,11 +252,13 @@ void loop()
     // Wait for the GNSS time to be valid and for the position fix to be 3D
     case wait_for_GNSS:
     {
-      esp_sleep_enable_timer_wakeup(500000); //0.5 seconds
-      esp_light_sleep_start();
+      //esp_sleep_enable_timer_wakeup(500000); //0.5 seconds
+      //esp_light_sleep_start();
+      delay(500);
 
       // Read the GNSS. Check that the time is valid.
       boolean timeValid = myGNSS.getTimeValid(); // Call getTimeValid twice to ensure we have fresh data
+      Serial.println();
       Serial.print(F("GPS time is "));
       if (timeValid == false) Serial.print(F("not "));
       Serial.println(F("valid"));
@@ -289,7 +293,6 @@ void loop()
       else
       {
         Serial.println(F("Waiting for GPS time to be valid and the fix type to be 3D..."));
-        Serial.println();
       }
     }
     break;
@@ -301,6 +304,7 @@ void loop()
     {
       // Read the GPS time, latitude and longitude. Convert to epoch.
       uint32_t epochNow = myARTIC.convertGPSTimeToEpoch(myGNSS.getYear(), myGNSS.getMonth(), myGNSS.getDay(), myGNSS.getHour(), myGNSS.getMinute(), myGNSS.getSecond()); // Convert GPS date & time to epoch
+      Serial.println();
       Serial.print(F("GNSS time is: "));
       Serial.print(myARTIC.convertEpochToDateTime(epochNow));
       Serial.println(F(" UTC"));
@@ -330,6 +334,7 @@ void loop()
 
       // Power down the GNSS now to save power - we'll use the RTC from now on
       digitalWrite(GNSS_PWR_EN_Pin, HIGH); // Disable power for the ZOE-M8Q
+      Serial.println(F("ZOE-M8Q power has been turned off"));
 
       loop_step = calculate_next_pass; // Move on
     }
@@ -343,6 +348,7 @@ void loop()
     {
       // Read the AOP, convert into bulletin_data_t
       bulletin_data_t satelliteParameters[numARGOSsatellites]; // Create an array of bulletin_data_t to hold the parameters for all satellites
+      Serial.println();
       if (myARTIC.convertAOPtoParameters(AOP, satelliteParameters, numARGOSsatellites) == false)
       {
         Serial.println("convertAOPtoParameters failed! Freezing...");
@@ -412,13 +418,13 @@ void loop()
         Serial.print(F(" will take place at: "));
         Serial.print(myARTIC.convertEpochToDateTime(nextTransmitTime));
         Serial.println(F(" UTC"));
+        Serial.println();
 
         loop_step = wait_for_next_pass; // Move on
       }
       else
       {
         Serial.println(F("The transmission window was missed. Recalculating..."));
-        Serial.println();
         // Leave loop_step unchanged so the next pass is recalculated
       }
     }
@@ -429,8 +435,9 @@ void loop()
     case wait_for_next_pass:
     {
       // Go round this case twice per second
-      esp_sleep_enable_timer_wakeup(500000); //0.5 seconds
-      esp_light_sleep_start();
+      //esp_sleep_enable_timer_wakeup(500000); //0.5 seconds
+      //esp_light_sleep_start();
+      delay(500);
       
       // Read the RTC
       struct timeval tv;
@@ -474,6 +481,7 @@ void loop()
       else if ((secsRemaining > 0) && articIsOn)
       {
         digitalWrite(ARTIC_PWR_EN_Pin, LOW); // Disable power for the ARTIC
+        Serial.println(F("ARTIC power has been turned off"));
         articIsOn = false;
       }
       // Is it time to power-on the ARTIC?
@@ -498,8 +506,8 @@ void loop()
       // Uncomment the next line to enable the helpful debug messages
       //myARTIC.enableDebugging(); // Enable debug messages to Serial
     
-      Serial.println(F("Starting the ARTIC R2..."));
       Serial.println();
+      Serial.println(F("Starting the ARTIC R2..."));
 
       bool success = true; // Flag if the ARTIC configuration is successful
     
@@ -542,7 +550,8 @@ void loop()
 
       // Configure the Tx payload for ARGOS PTT-A2 using our platform ID and the latest lat/lon
       success &= myARTIC.setPayloadARGOS3LatLon(PLATFORM_ID, gnssLatitude, gnssLongitude);
-
+      
+/*
       // Read the payload back again and print it
       if (success)
       {
@@ -550,6 +559,7 @@ void loop()
         myARTIC.printTxPayload();
         Serial.println();
       }
+*/
 
       if (success)
       {
@@ -571,8 +581,9 @@ void loop()
     case wait_for_ARTIC_TX_to_start:
     {
       // Go round this case twice per second
-      esp_sleep_enable_timer_wakeup(500000); //0.5 seconds
-      esp_light_sleep_start();
+      //esp_sleep_enable_timer_wakeup(500000); //0.5 seconds
+      //esp_light_sleep_start();
+      delay(500);
       
       // Read the RTC
       struct timeval tv;
@@ -613,10 +624,11 @@ void loop()
       }
       else
       {
-        Serial.println("sendMCUinstruction(INST_TRANSMIT_ONE_PACKAGE_AND_GO_IDLE) failed!");
         Serial.println();
+        Serial.println("sendMCUinstruction(INST_TRANSMIT_ONE_PACKAGE_AND_GO_IDLE) failed!");
         ARTIC_R2_Firmware_Status status;
         myARTIC.readStatusRegister(&status); // Read the ARTIC R2 status register
+        Serial.println();
         Serial.println(F("ARTIC R2 Firmware Status:"));
         myARTIC.printFirmwareStatus(status); // Pretty-print the firmware status to Serial
         Serial.println();
@@ -634,8 +646,9 @@ void loop()
     case wait_for_ARTIC_TX_to_complete:
     {
       // Check the status every second
-      esp_sleep_enable_timer_wakeup(1000000);
-      esp_light_sleep_start();      
+      //esp_sleep_enable_timer_wakeup(1000000);
+      //esp_light_sleep_start();
+      delay(1000);
 
       // Read and print the ARTIC R2 status register
       ARTIC_R2_Firmware_Status status;
@@ -714,6 +727,7 @@ void loop()
 
       myPowerBoard.setPowerdownDurationWDTInts(powerDownDuration); // Set the power-down duration (the I2C traffic this generates is a useful diagnostic)
 
+      Serial.println();
       Serial.print(F("Power-down for "));
       Serial.print(powerDownDuration);
       Serial.println(F(" seconds..."));
