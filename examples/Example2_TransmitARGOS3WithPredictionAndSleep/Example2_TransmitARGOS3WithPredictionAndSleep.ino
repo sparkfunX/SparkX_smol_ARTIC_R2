@@ -134,6 +134,8 @@ smolPowerLiPo myPowerBoard; // Uncomment this line to use the smôl Power Board 
 int CS_Pin = 5;            // smôl CS0 = ESP32 Pin 5
 int ARTIC_PWR_EN_Pin = 27; // smôl GPIO0 = ESP32 Pin 27
 int GNSS_PWR_EN_Pin = 26;  // smôl GPIO1 = ESP32 Pin 26
+const int esp32COPI = 23;  // smôl COPI  = ESP32 Pin 23
+const int esp32SCLK = 18;  // smôl SCLK  = ESP32 Pin 18
 
 // The ARTIC RESETB, INT1, BOOT and G8 signals are accessed through a PCA9536 I2C-GPIO chip on the smôl ARTIC R2
 
@@ -197,9 +199,10 @@ void loop()
       if (myPowerBoard.begin() == false) //Connect to the power board
       {
         Serial.println(F("smôl Power Board not detected at default I2C address. Please check the smôl stack-up and flexible circuits."));
-        //esp_sleep_enable_timer_wakeup(5000000); // Try again in five seconds
-        //esp_light_sleep_start();
-        delay(5000);
+        esp_sleep_enable_timer_wakeup(5000000); // Try again in five seconds
+        delay(10);
+        esp_light_sleep_start();
+        //delay(5000);
       }
       else
       {
@@ -388,6 +391,7 @@ void loop()
 
       if (numberTransmits >= 1)
       {
+        //if (firstTransmit == true) nextTransmitTime = epochNow + 60; else // Uncomment this line to make the code transmit immediately - useful for testing
         nextTransmitTime = nextSatellitePass - (((numberTransmits - 1) / 2) * repetitionPeriod);
         nextTransmitStart = nextTransmitTime + random((-0.1 * repetitionPeriod), (0.1 * repetitionPeriod)); // Add the jitter
         nextTransmitStart -= tcxoWarmupTime; // Start the transmit early to compensate for the TCXO warmup time
@@ -435,9 +439,10 @@ void loop()
     case wait_for_next_pass:
     {
       // Go round this case twice per second
-      //esp_sleep_enable_timer_wakeup(500000); //0.5 seconds
-      //esp_light_sleep_start();
-      delay(500);
+      esp_sleep_enable_timer_wakeup(500000); //0.5 seconds
+      delay(10);
+      esp_light_sleep_start();
+      //delay(500);
       
       // Read the RTC
       struct timeval tv;
@@ -482,6 +487,8 @@ void loop()
       {
         digitalWrite(ARTIC_PWR_EN_Pin, LOW); // Disable power for the ARTIC
         Serial.println(F("ARTIC power has been turned off"));
+        pinMode(esp32COPI, INPUT); // Make COPI an input so it cannot source power
+        pinMode(esp32SCLK, INPUT); // Make SCLK an input so it cannot source power
         articIsOn = false;
       }
       // Is it time to power-on the ARTIC?
@@ -501,6 +508,8 @@ void loop()
     // Power-on the ARTIC
     case power_on_ARTIC:
     {
+      pinMode(esp32COPI, OUTPUT); // Make COPI an output again
+      pinMode(esp32SCLK, OUTPUT); // Make SCLK an output again
       SPI.begin();
     
       // Uncomment the next line to enable the helpful debug messages
