@@ -12406,7 +12406,7 @@ ADM4210-1 VCB: 50mV
 Sense Resistor: 0.1 Ohms</text>
 <wire x1="88.9" y1="167.64" x2="0" y2="167.64" width="0.2032" layer="97" style="longdash"/>
 <text x="5.08" y="157.48" size="5.08" layer="94">FLASH Memory</text>
-<text x="5.08" y="66.802" size="5.08" layer="94">EZ Connectors</text>
+<text x="5.08" y="66.802" size="5.08" layer="94">smôl Connectors</text>
 <text x="11.938" y="28.194" size="2.54" layer="97" font="vector" rot="R90">Bottom</text>
 <text x="76.962" y="35.56" size="2.54" layer="97" font="vector" rot="R270">Top</text>
 <wire x1="170.18" y1="149.86" x2="88.9" y2="149.86" width="0.2032" layer="97" style="longdash"/>
