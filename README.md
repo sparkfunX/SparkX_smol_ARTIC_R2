@@ -16,6 +16,10 @@ The ARGOS ARTIC R2 satellite communication chipset in smôl format.
 - **/Hardware** - Eagle design files
 - **LICENSE.md** contains the licence information
 
+## Examples
+
+Example sketches for the smôl ARTIC R2 can be found in the [SparkFun ARGOS ARTIC R2 Arduino Library](https://github.com/sparkfun/SparkFun_ARGOS_ARTIC_R2_Arduino_Library/tree/main/examples/smol_ARTIC_R2)
+
 ## Product Versions
 
 - [SPX-18363](https://www.sparkfun.com/products/18363) - Original SparkX Release.
