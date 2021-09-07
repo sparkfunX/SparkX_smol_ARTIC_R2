@@ -48,7 +48,7 @@ The ARGOS satellite system is restricted to specific programs and applications. 
 **Starting Left Edge, going Right:**
 
 | Pin | Name | Description |
-|---|---|---|---|
+|---|---|---|
 | **1** | **PROC_PWR_EN** | Not used by the smôl ARTIC R2. It is used to disable the power regulator on smôl processor boards. |
 | **2** | **3.3V** | 3.3V power supply for the module. **Voltage must be: 3.3V +/- 0.1V**. Current limit: 500mA. |
 | **3** | **GND** | Power ground / 0V. |
@@ -71,7 +71,7 @@ The ARGOS satellite system is restricted to specific programs and applications. 
 **Starting Right Edge, going Left:**
 
 | Pin | Name | Description |
-|---|---|---|---|
+|---|---|---|
 | **1** | **PROC_PWR_EN** | Not used by the smôl ARTIC R2. It is used to disable the power regulator on smôl processor boards. |
 | **2** | **3.3V** | 3.3V power supply for the module. **Voltage must be: 3.3V +/- 0.1V**. Current limit: 500mA. |
 | **3** | **GND** | Power ground / 0V. |
