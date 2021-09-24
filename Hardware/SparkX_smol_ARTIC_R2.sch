@@ -135,6 +135,12 @@
 <layer number="153" name="FabDoc1" color="7" fill="1" visible="no" active="no"/>
 <layer number="154" name="FabDoc2" color="7" fill="1" visible="no" active="no"/>
 <layer number="155" name="FabDoc3" color="7" fill="1" visible="no" active="no"/>
+<layer number="156" name="gesam-Maß" color="1" fill="7" visible="no" active="no"/>
+<layer number="157" name="FaceMchng" color="3" fill="1" visible="no" active="no"/>
+<layer number="158" name="FaceMMeas" color="3" fill="1" visible="no" active="no"/>
+<layer number="159" name="Geh-Bear2" color="1" fill="7" visible="no" active="no"/>
+<layer number="160" name="Topologie" color="9" fill="1" visible="no" active="no"/>
+<layer number="161" name="tomplace2" color="7" fill="1" visible="no" active="no"/>
 <layer number="166" name="AntennaArea" color="7" fill="1" visible="no" active="no"/>
 <layer number="168" name="4mmHeightArea" color="7" fill="1" visible="no" active="no"/>
 <layer number="191" name="mNets" color="7" fill="1" visible="no" active="no"/>
@@ -182,6 +188,7 @@
 <layer number="249" name="Edge" color="7" fill="1" visible="no" active="no"/>
 <layer number="250" name="Descript" color="3" fill="1" visible="no" active="no"/>
 <layer number="251" name="SMDround" color="12" fill="11" visible="no" active="no"/>
+<layer number="252" name="BR-BS" color="7" fill="1" visible="no" active="no"/>
 <layer number="253" name="Extra" color="7" fill="1" visible="no" active="no"/>
 <layer number="254" name="cooling" color="7" fill="1" visible="no" active="no"/>
 <layer number="255" name="routoute" color="7" fill="1" visible="no" active="no"/>
@@ -5104,13 +5111,13 @@ Commonly used for small ceramic capacitors. Like our 0.1uF (http://www.sparkfun.
 <description>&lt;h3&gt;1nF/1,000pF ceramic capacitors&lt;/h3&gt;
 &lt;p&gt;A capacitor is a passive two-terminal electrical component used to store electrical energy temporarily in an electric field.&lt;/p&gt;</description>
 <gates>
-<gate name="G$1" symbol="CAP" x="0" y="0"/>
+<gate name="C1" symbol="CAP" x="0" y="0"/>
 </gates>
 <devices>
 <device name="-0603-50V-10%" package="0603">
 <connects>
-<connect gate="G$1" pin="1" pad="1"/>
-<connect gate="G$1" pin="2" pad="2"/>
+<connect gate="C1" pin="1" pad="1"/>
+<connect gate="C1" pin="2" pad="2"/>
 </connects>
 <technologies>
 <technology name="">
@@ -5121,8 +5128,8 @@ Commonly used for small ceramic capacitors. Like our 0.1uF (http://www.sparkfun.
 </device>
 <device name="-0402_TIGHT-50V-10%" package="0402-TIGHT">
 <connects>
-<connect gate="G$1" pin="1" pad="1"/>
-<connect gate="G$1" pin="2" pad="2"/>
+<connect gate="C1" pin="1" pad="1"/>
+<connect gate="C1" pin="2" pad="2"/>
 </connects>
 <technologies>
 <technology name="">
@@ -5133,8 +5140,8 @@ Commonly used for small ceramic capacitors. Like our 0.1uF (http://www.sparkfun.
 </device>
 <device name="-0402-50V-10%" package="0402">
 <connects>
-<connect gate="G$1" pin="1" pad="1"/>
-<connect gate="G$1" pin="2" pad="2"/>
+<connect gate="C1" pin="1" pad="1"/>
+<connect gate="C1" pin="2" pad="2"/>
 </connects>
 <technologies>
 <technology name=""/>
@@ -5142,12 +5149,24 @@ Commonly used for small ceramic capacitors. Like our 0.1uF (http://www.sparkfun.
 </device>
 <device name="-0402-25V-10%-X7R" package="0402">
 <connects>
-<connect gate="G$1" pin="1" pad="1"/>
-<connect gate="G$1" pin="2" pad="2"/>
+<connect gate="C1" pin="1" pad="1"/>
+<connect gate="C1" pin="2" pad="2"/>
 </connects>
 <technologies>
 <technology name="">
 <attribute name="PROD_ID" value="CAP-15061" constant="no"/>
+<attribute name="VALUE" value="1nF" constant="no"/>
+</technology>
+</technologies>
+</device>
+<device name="-1206-2KV-10%" package="1206">
+<connects>
+<connect gate="C1" pin="1" pad="1"/>
+<connect gate="C1" pin="2" pad="2"/>
+</connects>
+<technologies>
+<technology name="">
+<attribute name="PROD_ID" value="CAP-16238" constant="no"/>
 <attribute name="VALUE" value="1nF" constant="no"/>
 </technology>
 </technologies>
@@ -5611,7 +5630,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 </connects>
 <technologies>
 <technology name="">
-<attribute name="PROD_ID" value="IC-16020" constant="no"/>
+<attribute name="PROD_ID" value="IC-14694" constant="no"/>
 </technology>
 </technologies>
 </device>
@@ -5795,23 +5814,6 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <text x="0" y="1.143" size="0.6096" layer="25" font="vector" ratio="20" align="bottom-center">&gt;Name</text>
 <text x="0" y="-1.143" size="0.6096" layer="27" font="vector" ratio="20" align="top-center">&gt;Value</text>
 </package>
-<package name="0603">
-<description>&lt;p&gt;&lt;b&gt;Generic 1608 (0603) package&lt;/b&gt;&lt;/p&gt;
-&lt;p&gt;0.2mm courtyard excess rounded to nearest 0.05mm.&lt;/p&gt;</description>
-<wire x1="-1.6" y1="0.7" x2="1.6" y2="0.7" width="0.0508" layer="39"/>
-<wire x1="1.6" y1="0.7" x2="1.6" y2="-0.7" width="0.0508" layer="39"/>
-<wire x1="1.6" y1="-0.7" x2="-1.6" y2="-0.7" width="0.0508" layer="39"/>
-<wire x1="-1.6" y1="-0.7" x2="-1.6" y2="0.7" width="0.0508" layer="39"/>
-<wire x1="-0.356" y1="0.432" x2="0.356" y2="0.432" width="0.1016" layer="51"/>
-<wire x1="-0.356" y1="-0.419" x2="0.356" y2="-0.419" width="0.1016" layer="51"/>
-<smd name="1" x="-0.85" y="0" dx="1.1" dy="1" layer="1"/>
-<smd name="2" x="0.85" y="0" dx="1.1" dy="1" layer="1"/>
-<text x="0" y="0.762" size="0.6096" layer="25" font="vector" ratio="20" align="bottom-center">&gt;NAME</text>
-<text x="0" y="-0.762" size="0.6096" layer="27" font="vector" ratio="20" align="top-center">&gt;VALUE</text>
-<rectangle x1="-0.8382" y1="-0.4699" x2="-0.3381" y2="0.4801" layer="51"/>
-<rectangle x1="0.3302" y1="-0.4699" x2="0.8303" y2="0.4801" layer="51"/>
-<rectangle x1="-0.1999" y1="-0.3" x2="0.1999" y2="0.3" layer="35"/>
-</package>
 <package name="AXIAL-0.3EZ">
 <description>This is the "EZ" version of the standard .3" spaced resistor package.&lt;br&gt;
 It has a reduced top mask to make it harder to install upside-down.</description>
@@ -5847,6 +5849,23 @@ It has a reduced top mask to make it harder to install upside-down.</description
 <wire x1="2.59" y1="1.45" x2="2.59" y2="-1.45" width="0.0508" layer="39"/>
 <wire x1="2.59" y1="-1.45" x2="-2.59" y2="-1.45" width="0.0508" layer="39"/>
 <wire x1="-2.59" y1="-1.45" x2="-2.59" y2="1.45" width="0.0508" layer="39"/>
+</package>
+<package name="0603" urn="urn:adsk.eagle:footprint:39615/1" library_version="1">
+<description>&lt;p&gt;&lt;b&gt;Generic 1608 (0603) package&lt;/b&gt;&lt;/p&gt;
+&lt;p&gt;0.2mm courtyard excess rounded to nearest 0.05mm.&lt;/p&gt;</description>
+<wire x1="-1.6" y1="0.7" x2="1.6" y2="0.7" width="0.0508" layer="39"/>
+<wire x1="1.6" y1="0.7" x2="1.6" y2="-0.7" width="0.0508" layer="39"/>
+<wire x1="1.6" y1="-0.7" x2="-1.6" y2="-0.7" width="0.0508" layer="39"/>
+<wire x1="-1.6" y1="-0.7" x2="-1.6" y2="0.7" width="0.0508" layer="39"/>
+<wire x1="-0.356" y1="0.432" x2="0.356" y2="0.432" width="0.1016" layer="51"/>
+<wire x1="-0.356" y1="-0.419" x2="0.356" y2="-0.419" width="0.1016" layer="51"/>
+<smd name="1" x="-0.85" y="0" dx="1.1" dy="1" layer="1"/>
+<smd name="2" x="0.85" y="0" dx="1.1" dy="1" layer="1"/>
+<text x="0" y="0.762" size="0.6096" layer="25" font="vector" ratio="20" align="bottom-center">&gt;NAME</text>
+<text x="0" y="-0.762" size="0.6096" layer="27" font="vector" ratio="20" align="top-center">&gt;VALUE</text>
+<rectangle x1="-0.8382" y1="-0.4699" x2="-0.3381" y2="0.4801" layer="51"/>
+<rectangle x1="0.3302" y1="-0.4699" x2="0.8303" y2="0.4801" layer="51"/>
+<rectangle x1="-0.1999" y1="-0.3" x2="0.1999" y2="0.3" layer="35"/>
 </package>
 </packages>
 <symbols>
@@ -6574,15 +6593,15 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <wire x1="0.9262" y1="-0.4262" x2="0.9262" y2="0.4262" width="0.05" layer="39"/>
 </package>
 <package name="0402_COILCRAFT">
-<wire x1="-0.5461" y1="-0.3048" x2="-0.5461" y2="0.3048" width="0.002540625" layer="51"/>
-<wire x1="-0.5461" y1="0.3048" x2="0.5461" y2="0.3048" width="0.002540625" layer="51"/>
-<wire x1="0.5461" y1="0.3048" x2="0.5461" y2="-0.3048" width="0.002540625" layer="51"/>
-<wire x1="0.5461" y1="-0.3048" x2="-0.5461" y2="-0.3048" width="0.002540625" layer="51"/>
-<rectangle x1="-0.508" y1="-0.254" x2="-0.3048" y2="0.254" layer="51"/>
 <smd name="P$1" x="-0.4318" y="0" dx="0.3556" dy="0.6604" layer="1"/>
 <smd name="P$2" x="0.4318" y="0" dx="0.3556" dy="0.6604" layer="1"/>
-<rectangle x1="0.3048" y1="-0.254" x2="0.508" y2="0.254" layer="51"/>
 <wire x1="0" y1="-0.127" x2="0" y2="0.127" width="0.254" layer="41"/>
+<wire x1="-0.5" y1="-0.25" x2="-0.5" y2="0.25" width="0.002540625" layer="51"/>
+<wire x1="-0.5" y1="0.25" x2="0.5" y2="0.25" width="0.002540625" layer="51"/>
+<wire x1="0.5" y1="0.25" x2="0.5" y2="-0.25" width="0.002540625" layer="51"/>
+<wire x1="0.5" y1="-0.25" x2="-0.5" y2="-0.25" width="0.002540625" layer="51"/>
+<rectangle x1="-0.5" y1="-0.25" x2="-0.3" y2="0.25" layer="51"/>
+<rectangle x1="0.3" y1="-0.25" x2="0.5" y2="0.25" layer="51" rot="R180"/>
 </package>
 <package name="0805">
 <description>&lt;p&gt;&lt;b&gt;Generic 2012 (0805) package&lt;/b&gt;&lt;/p&gt;
@@ -6660,7 +6679,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <technology name=""/>
 </technologies>
 </device>
-<device name="-0603-30OHM-100MHZ" package="0603">
+<device name="-0603-30Ω-100MHZ" package="0603">
 <connects>
 <connect gate="G$1" pin="1" pad="1"/>
 <connect gate="G$1" pin="2" pad="2"/>
@@ -6672,7 +6691,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 </technology>
 </technologies>
 </device>
-<device name="-0402-30OHM-100MHZ" package="0402-TIGHT">
+<device name="-0402-30Ω-100MHZ" package="0402-TIGHT">
 <connects>
 <connect gate="G$1" pin="1" pad="1"/>
 <connect gate="G$1" pin="2" pad="2"/>
@@ -6684,7 +6703,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 </technology>
 </technologies>
 </device>
-<device name="-0402-2.66OHM-1GHZ" package="0402-TIGHT">
+<device name="-0402-2.66Ω-1GHZ" package="0402-TIGHT">
 <connects>
 <connect gate="G$1" pin="1" pad="1"/>
 <connect gate="G$1" pin="2" pad="2"/>
@@ -6705,6 +6724,18 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <technology name="">
 <attribute name="PROD_ID" value="NDUC-14988" constant="no"/>
 <attribute name="VALUE" value="600Ω" constant="no"/>
+</technology>
+</technologies>
+</device>
+<device name="-0603-470Ω-100MHZ-1A-200MILIΩ" package="0603">
+<connects>
+<connect gate="G$1" pin="1" pad="1"/>
+<connect gate="G$1" pin="2" pad="2"/>
+</connects>
+<technologies>
+<technology name="">
+<attribute name="PROD_ID" value="NDUC-12579" constant="no"/>
+<attribute name="VALUE" value="470Ω" constant="no"/>
 </technology>
 </technologies>
 </device>
@@ -7211,7 +7242,7 @@ Switches electronic signals</description>
 </technology>
 </technologies>
 </device>
-<device name="-RE1C00UNTL" package="SOT-416FL">
+<device name="-RE1C002UNTCL" package="SOT-416FL">
 <connects>
 <connect gate="NMOS" pin="D" pad="3"/>
 <connect gate="NMOS" pin="G" pad="1"/>
@@ -8143,6 +8174,85 @@ Holes are offset 0.005" to hold pins in place while soldering.
 <smd name="1" x="0" y="-1.525" dx="1" dy="1.05" layer="1"/>
 <text x="-2.159" y="-3.302" size="0.8128" layer="27" font="vector">&gt;VALUE</text>
 </package>
+<package name="FPC_16_0.5MM_VERTICAL">
+<wire x1="6.45" y1="-1.15" x2="-6.45" y2="-1.15" width="0.1" layer="51"/>
+<smd name="1" x="-3.75" y="-1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="2" x="-3.25" y="1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="MP1" x="-4.75" y="-1.4" dx="0.8" dy="1.5" layer="1"/>
+<rectangle x1="-3.95" y1="-1.85" x2="-3.55" y2="-0.75" layer="31"/>
+<smd name="MP2" x="4.75" y="-1.4" dx="0.8" dy="1.5" layer="1"/>
+<rectangle x1="-4.95" y1="-1.65" x2="-4.55" y2="-0.75" layer="51"/>
+<wire x1="-6.85" y1="1.15" x2="-5.4" y2="1.55" width="0.1524" layer="21"/>
+<wire x1="-6.85" y1="1.15" x2="-6.85" y2="-1.15" width="0.1524" layer="21"/>
+<wire x1="-6.85" y1="-1.15" x2="-5.4" y2="-1.15" width="0.1524" layer="21"/>
+<wire x1="6.85" y1="1.15" x2="6.85" y2="-1.15" width="0.1524" layer="21"/>
+<wire x1="6.85" y1="1.15" x2="5.4" y2="1.55" width="0.1524" layer="21"/>
+<smd name="3" x="-2.75" y="-1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="4" x="-2.25" y="1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="5" x="-1.75" y="-1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="6" x="-1.25" y="1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="7" x="-0.75" y="-1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="8" x="-0.25" y="1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="9" x="0.25" y="-1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="10" x="0.75" y="1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="11" x="1.25" y="-1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="12" x="1.75" y="1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="13" x="2.25" y="-1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="14" x="2.75" y="1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="15" x="3.25" y="-1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="16" x="3.75" y="1.4" dx="0.6" dy="1.5" layer="1" cream="no"/>
+<smd name="MP3" x="-4.75" y="1.4" dx="0.8" dy="1.5" layer="1"/>
+<smd name="MP4" x="4.75" y="1.4" dx="0.8" dy="1.5" layer="1"/>
+<rectangle x1="-3.85" y1="-1.65" x2="-3.65" y2="-0.75" layer="51"/>
+<rectangle x1="-2.85" y1="-1.65" x2="-2.65" y2="-0.75" layer="51"/>
+<rectangle x1="-1.85" y1="-1.65" x2="-1.65" y2="-0.75" layer="51"/>
+<rectangle x1="-0.85" y1="-1.65" x2="-0.65" y2="-0.75" layer="51"/>
+<rectangle x1="0.15" y1="-1.65" x2="0.35" y2="-0.75" layer="51"/>
+<rectangle x1="1.15" y1="-1.65" x2="1.35" y2="-0.75" layer="51"/>
+<rectangle x1="2.15" y1="-1.65" x2="2.35" y2="-0.75" layer="51"/>
+<rectangle x1="3.15" y1="-1.65" x2="3.35" y2="-0.75" layer="51"/>
+<rectangle x1="-4.95" y1="0.75" x2="-4.55" y2="1.65" layer="51"/>
+<rectangle x1="4.55" y1="0.75" x2="4.95" y2="1.65" layer="51"/>
+<rectangle x1="4.55" y1="-1.65" x2="4.95" y2="-0.75" layer="51"/>
+<rectangle x1="2.65" y1="0.75" x2="2.85" y2="1.65" layer="51"/>
+<rectangle x1="1.65" y1="0.75" x2="1.85" y2="1.65" layer="51"/>
+<rectangle x1="0.65" y1="0.75" x2="0.85" y2="1.65" layer="51"/>
+<rectangle x1="-0.35" y1="0.75" x2="-0.15" y2="1.65" layer="51"/>
+<rectangle x1="-1.35" y1="0.75" x2="-1.15" y2="1.65" layer="51"/>
+<rectangle x1="-2.35" y1="0.75" x2="-2.15" y2="1.65" layer="51"/>
+<rectangle x1="-3.35" y1="0.75" x2="-3.15" y2="1.65" layer="51"/>
+<rectangle x1="-3.45" y1="0.75" x2="-3.05" y2="1.85" layer="31"/>
+<rectangle x1="3.65" y1="0.75" x2="3.85" y2="1.65" layer="51"/>
+<rectangle x1="-2.45" y1="0.75" x2="-2.05" y2="1.85" layer="31"/>
+<rectangle x1="-1.45" y1="0.75" x2="-1.05" y2="1.85" layer="31"/>
+<rectangle x1="-0.45" y1="0.75" x2="-0.05" y2="1.85" layer="31"/>
+<rectangle x1="0.55" y1="0.75" x2="0.95" y2="1.85" layer="31"/>
+<rectangle x1="1.55" y1="0.75" x2="1.95" y2="1.85" layer="31"/>
+<rectangle x1="2.55" y1="0.75" x2="2.95" y2="1.85" layer="31"/>
+<rectangle x1="3.55" y1="0.75" x2="3.95" y2="1.85" layer="31"/>
+<rectangle x1="-2.95" y1="-1.85" x2="-2.55" y2="-0.75" layer="31"/>
+<rectangle x1="-1.95" y1="-1.85" x2="-1.55" y2="-0.75" layer="31"/>
+<rectangle x1="-0.95" y1="-1.85" x2="-0.55" y2="-0.75" layer="31"/>
+<rectangle x1="0.05" y1="-1.85" x2="0.45" y2="-0.75" layer="31"/>
+<rectangle x1="1.05" y1="-1.85" x2="1.45" y2="-0.75" layer="31"/>
+<rectangle x1="2.05" y1="-1.85" x2="2.45" y2="-0.75" layer="31"/>
+<rectangle x1="3.05" y1="-1.85" x2="3.45" y2="-0.75" layer="31"/>
+<wire x1="5.4" y1="-1.15" x2="6.85" y2="-1.15" width="0.1524" layer="21"/>
+<wire x1="6.45" y1="1.15" x2="-6.45" y2="1.15" width="0.1" layer="51"/>
+<wire x1="-6.45" y1="1.15" x2="-6.45" y2="-1.15" width="0.1" layer="51"/>
+<wire x1="6.45" y1="1.15" x2="6.45" y2="-1.15" width="0.1" layer="51"/>
+<wire x1="4" y1="1.85" x2="6.85" y2="1.15" width="0.1" layer="51"/>
+<wire x1="-4" y1="1.85" x2="-6.85" y2="1.15" width="0.1" layer="51"/>
+<wire x1="-6.85" y1="1.15" x2="-6.85" y2="-1.15" width="0.1" layer="51"/>
+<wire x1="6.85" y1="1.15" x2="6.85" y2="-1.15" width="0.1" layer="51"/>
+<wire x1="4" y1="1.85" x2="-4" y2="1.85" width="0.1" layer="51"/>
+<polygon width="0.1524" layer="21">
+<vertex x="-5.9" y="-1.4"/>
+<vertex x="-6.4" y="-2"/>
+<vertex x="-5.4" y="-2"/>
+</polygon>
+<text x="0" y="-3" size="0.6096" layer="51" align="bottom-center">CONTACTS THIS SIDE ONLY</text>
+</package>
 </packages>
 <symbols>
 <symbol name="TEST-POINT">
@@ -8509,6 +8619,33 @@ This footprint was designed to help hold the alignment of a through-hole compone
 <technologies>
 <technology name="">
 <attribute name="PROD_ID" value="CONN-16066" constant="no"/>
+</technology>
+</technologies>
+</device>
+<device name="FPC_16_0.5MM_VERTICAL" package="FPC_16_0.5MM_VERTICAL">
+<connects>
+<connect gate="G$1" pin="1" pad="1"/>
+<connect gate="G$1" pin="10" pad="10"/>
+<connect gate="G$1" pin="11" pad="11"/>
+<connect gate="G$1" pin="12" pad="12"/>
+<connect gate="G$1" pin="13" pad="13"/>
+<connect gate="G$1" pin="14" pad="14"/>
+<connect gate="G$1" pin="15" pad="15"/>
+<connect gate="G$1" pin="16" pad="16"/>
+<connect gate="G$1" pin="2" pad="2"/>
+<connect gate="G$1" pin="3" pad="3"/>
+<connect gate="G$1" pin="4" pad="4"/>
+<connect gate="G$1" pin="5" pad="5"/>
+<connect gate="G$1" pin="6" pad="6"/>
+<connect gate="G$1" pin="7" pad="7"/>
+<connect gate="G$1" pin="8" pad="8"/>
+<connect gate="G$1" pin="9" pad="9"/>
+</connects>
+<technologies>
+<technology name="">
+<attribute name="DIGIKEY_PART" value="WM10839CT-ND" constant="no"/>
+<attribute name="MANU_PART" value="MOLEX_0525591652" constant="no"/>
+<attribute name="PROD_ID" value="" constant="no"/>
 </technology>
 </technologies>
 </device>
@@ -12147,25 +12284,25 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <part name="GND7" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="GND8" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="GND9" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
-<part name="L13" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30OHM-100MHZ" value="30Ω"/>
+<part name="L13" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30Ω-100MHZ" value="30Ω"/>
 <part name="C34" library="SparkFun-Capacitors" deviceset="22PF" device="-0402T-16V-10%" value="22pF"/>
 <part name="C35" library="SparkFun-Capacitors" deviceset="0.1UF" device="-0402T-6.3V-10%-X7R" value="0.1uF"/>
 <part name="GND10" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="GND11" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="SUPPLY8" library="SparkFun-PowerSymbols" deviceset="VDD" device=""/>
-<part name="L15" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30OHM-100MHZ" value="30Ω"/>
+<part name="L15" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30Ω-100MHZ" value="30Ω"/>
 <part name="C40" library="SparkFun-Capacitors" deviceset="22PF" device="-0402T-16V-10%" value="22pF"/>
 <part name="C41" library="SparkFun-Capacitors" deviceset="0.1UF" device="-0402T-6.3V-10%-X7R" value="0.1uF"/>
 <part name="GND12" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="GND13" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="SUPPLY5" library="SparkFun-PowerSymbols" deviceset="1.8V" device=""/>
-<part name="L9" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30OHM-100MHZ" value="30Ω"/>
+<part name="L9" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30Ω-100MHZ" value="30Ω"/>
 <part name="C27" library="SparkFun-Capacitors" deviceset="22PF" device="-0402T-16V-10%" value="22pF"/>
 <part name="C26" library="SparkFun-Capacitors" deviceset="0.1UF" device="-0402T-6.3V-10%-X7R" value="0.1uF"/>
 <part name="GND16" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="GND17" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="SUPPLY9" library="SparkFun-PowerSymbols" deviceset="VDD" device=""/>
-<part name="L10" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30OHM-100MHZ" value="30Ω"/>
+<part name="L10" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30Ω-100MHZ" value="30Ω"/>
 <part name="C33" library="SparkFun-Capacitors" deviceset="22PF" device="-0402T-16V-10%" value="22pF"/>
 <part name="C32" library="SparkFun-Capacitors" deviceset="0.1UF" device="-0402T-6.3V-10%-X7R" value="0.1uF"/>
 <part name="GND18" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
@@ -12173,11 +12310,11 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <part name="SUPPLY10" library="SparkFun-PowerSymbols" deviceset="1.8V" device=""/>
 <part name="R8" library="SparkFun-Resistors" deviceset="100KOHM" device="-0402T-1/16W-1%" value="100k"/>
 <part name="R5" library="SparkFun-Resistors" deviceset="100KOHM" device="-0402T-1/16W-1%" value="100k"/>
-<part name="L4" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30OHM-100MHZ" value="30Ω"/>
+<part name="L4" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30Ω-100MHZ" value="30Ω"/>
 <part name="GND20" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="GND21" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="SUPPLY11" library="SparkFun-PowerSymbols" deviceset="VDD" device=""/>
-<part name="L3" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30OHM-100MHZ" value="30Ω"/>
+<part name="L3" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30Ω-100MHZ" value="30Ω"/>
 <part name="C7" library="SparkFun-Capacitors" deviceset="22PF" device="-0402T-16V-10%" value="22pF"/>
 <part name="C8" library="SparkFun-Capacitors" deviceset="0.1UF" device="-0402T-6.3V-10%-X7R" value="0.1uF"/>
 <part name="GND22" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
@@ -12185,7 +12322,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <part name="SUPPLY12" library="SparkFun-PowerSymbols" deviceset="1.8V" device=""/>
 <part name="R4" library="SparkFun-Resistors" deviceset="33KOHM" device="-0402T-1/16W-1%" value="33k"/>
 <part name="GND24" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
-<part name="L2" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30OHM-100MHZ" value="30Ω"/>
+<part name="L2" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30Ω-100MHZ" value="30Ω"/>
 <part name="C5" library="SparkFun-Capacitors" deviceset="22PF" device="-0402T-16V-10%" value="22pF"/>
 <part name="C6" library="SparkFun-Capacitors" deviceset="0.1UF" device="-0402T-6.3V-10%-X7R" value="0.1uF"/>
 <part name="GND25" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
@@ -12239,7 +12376,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <part name="GND46" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="GND47" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="R3" library="SparkFun-Resistors" deviceset="3.9OHM" device="-0402-TIGHT-1/16W-1%" value="3.9"/>
-<part name="L14" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30OHM-100MHZ" value="30Ω"/>
+<part name="L14" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30Ω-100MHZ" value="30Ω"/>
 <part name="C39" library="SparkFun-Capacitors" deviceset="22PF" device="-0402T-16V-10%" value="22pF"/>
 <part name="C38" library="SparkFun-Capacitors" deviceset="0.1UF" device="-0402T-6.3V-10%-X7R" value="0.1uF"/>
 <part name="GND50" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
@@ -12284,7 +12421,7 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <part name="SUPPLY18" library="SparkFun-PowerSymbols" deviceset="1.8V" device=""/>
 <part name="U7" library="SparkFun-IC-Memory" deviceset="SST25VF020B" device="USON"/>
 <part name="GND53" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
-<part name="L1" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30OHM-100MHZ" value="30Ω"/>
+<part name="L1" library="SparkFun-Coils" deviceset="FERRITE_BEAD" device="-0402-30Ω-100MHZ" value="30Ω"/>
 <part name="C50" library="SparkFun-Capacitors" deviceset="0.1UF" device="-0402T-6.3V-10%-X7R" value="0.1uF"/>
 <part name="GND55" library="SparkFun-PowerSymbols" deviceset="GND" device=""/>
 <part name="IN" library="SparkFun-Connectors" deviceset="CONN_16" device="FPC_16_0.5MM"/>
@@ -12682,7 +12819,7 @@ Sense Resistor: 0.1 Ohms</text>
 <instance part="GND28" gate="1" x="271.78" y="165.1" smashed="yes" rot="MR0">
 <attribute name="VALUE" x="271.78" y="164.846" size="1.778" layer="96" font="vector" rot="MR0" align="top-center"/>
 </instance>
-<instance part="C17" gate="G$1" x="269.24" y="142.24" smashed="yes" rot="R270">
+<instance part="C17" gate="C1" x="269.24" y="142.24" smashed="yes" rot="R270">
 <attribute name="NAME" x="272.161" y="140.716" size="1.778" layer="95" font="vector" rot="R270"/>
 <attribute name="VALUE" x="267.081" y="140.716" size="1.778" layer="96" font="vector" rot="R270"/>
 </instance>
@@ -14131,13 +14268,13 @@ Sense Resistor: 0.1 Ohms</text>
 <pinref part="X1" gate="G$1" pin="OUT"/>
 <wire x1="281.94" y1="157.48" x2="289.56" y2="157.48" width="0.1524" layer="91"/>
 <wire x1="289.56" y1="157.48" x2="289.56" y2="142.24" width="0.1524" layer="91"/>
-<pinref part="C17" gate="G$1" pin="1"/>
+<pinref part="C17" gate="C1" pin="1"/>
 <wire x1="289.56" y1="142.24" x2="274.32" y2="142.24" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$16" class="0">
 <segment>
-<pinref part="C17" gate="G$1" pin="2"/>
+<pinref part="C17" gate="C1" pin="2"/>
 <wire x1="266.7" y1="142.24" x2="251.46" y2="142.24" width="0.1524" layer="91"/>
 <pinref part="U3" gate="G$1" pin="FREF"/>
 <wire x1="251.46" y1="142.24" x2="251.46" y2="137.16" width="0.1524" layer="91"/>
