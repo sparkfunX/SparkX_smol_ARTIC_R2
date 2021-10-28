@@ -1,13 +1,11 @@
 # SparkX smôl ARTIC R2
 
-[![SparkX smôl ARTIC R2 (SPX-18618)]()](https://www.sparkfun.com/products/18618)
+[![SparkX smôl ARTIC R2 (SPX-18618)](https://cdn.sparkfun.com/assets/parts/1/8/1/1/5/18618-smo__l_ARTIC_R2-01.jpg)](https://www.sparkfun.com/products/18618)
 
 [*SparkX smôl ARTIC R2 (SPX-18618)*](https://www.sparkfun.com/products/18618)
 
 The ARGOS ARTIC R2 satellite communication chipset in smôl format.
 
-![Top.png](./img/Top.png)
-![Bottom.png](./img/Bottom.png)
 ![Dimensions.png](./img/Dimensions.png)
 
 The ARTIC-R2 is an integrated low power small size ARGOS 2/3/4 single chip radio. ARTIC-R2 implements a message based wireless interface. For satellite uplink communication, ARTIC-R2 will encode, modulate and transmit provided user messages. For downlink communication, ARTIC-R2 will lock to the downstream, demodulate and decode it and extract the satellite messages.
